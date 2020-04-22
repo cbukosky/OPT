@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+
+    <record id="view_purchase_proxy_form" model="ir.ui.view">
+      <field name="name">purchase.proxy.form</field>
+      <field name="model">purchase.proxy</field>
+      <field name="arch" type="xml">
+    	<form>
+    	  <header>
+    	  </header>
+    	  <sheet>
+    	    <group>
+    	      <group>
+    		<field name="approver_id"/>
+    	      </group>
+    	      <group>
+    		<field name="proxy_id"/>
+    	      </group>
+    	    </group>
+    	  </sheet>
+    	  <!-- <div class="oe_chatter"> -->
+    	  <!--   <field name="message_follower_ids" widget="mail_followers"/> -->
+    	  <!--   <field name="message_ids" widget="mail_thread"/> -->
+    	  <!-- </div> -->
+    	</form>
+      </field>
+    </record>
+    
+    <record id="view_purchase_proxy_tree" model="ir.ui.view">
+      <field name="name">purchase.proxy.tree</field>
+      <field name="model">purchase.proxy</field>
+      <field name="arch" type="xml">
+	<tree editable="bottom">
+	  <field name="approver_id"/>
+	  <field name="proxy_id"/>
+	</tree>
+      </field>
+    </record>
+
+    <record id="action_purchase_proxy_tree" model="ir.actions.act_window">
+      <field name="name">Purchase Proxy</field>
+      <field name="res_model">purchase.proxy</field>
+      <field name="view_type">form</field>
+      <field name="view_mode">tree,form</field>
+      <field name="context">{}</field>
+    </record>
+
+    <menuitem id="menu_purchase_proxy" name="Purchase Proxy" action="action_purchase_proxy_tree" parent="purchase.menu_purchase_config" sequence="17"/>
+
+  </data>
+</odoo>

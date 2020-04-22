@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_item_purchase_account_group,access_purchase_account_group,opt_purchase.model_purchase_account_group,,1,1,1,1
+access_item_purchase_charge_code,access_purchase_charge_code,opt_purchase.model_purchase_charge_code,,1,1,1,1
+access_item_purchase_level,access_purchase_level,opt_purchase.model_purchase_level,,1,1,1,1
+access_item_purchase_approval,access_purchase_approval,opt_purchase.model_purchase_approval,,1,1,1,1
+access_item_purchase_proxy,access_purchase_proxy,opt_purchase.model_purchase_proxy,,1,1,1,1
+
+
