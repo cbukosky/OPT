@@ -71,7 +71,7 @@ class PurchaseOrder(models.Model):
     approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved')
     show_action_approve = fields.Boolean('Show Approve Button', readonly=True, compute='_compute_show_action_approve')
 
-    proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True)
+    proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
 
 
     def _compute_approved(self):
@@ -121,7 +121,7 @@ class PurchaseOrder(models.Model):
                     template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in partners]})
 
             proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', order.approval_ids.mapped('user_id').ids)])  # it should exclude non-active records by default
-            new_proxy_ids = set(proxy_ids.ids) - set(order.proxy_ids.ids)
+            new_proxy_ids = set(proxy_ids) - set(order.proxy_ids)
             order.write({'proxy_ids': [(6, 0, proxy_ids.ids)]})
             proxy_template = self.env.ref('opt_purchase.mail_template_po_notification')
             proxy_partners = [p.approver_id.partner_id for p in new_proxy_ids]
