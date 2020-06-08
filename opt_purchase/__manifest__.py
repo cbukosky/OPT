@@ -13,8 +13,11 @@
     "depends": ["purchase"],
     "data": [
         "security/ir.model.access.csv",
+        "data/mail_template.xml",
         "views/purchase_order_views.xml",
         "views/purchase_level_views.xml",
-        "views/purchase_proxy_views.xml"
+        "views/purchase_proxy_views.xml",
+        "views/purchase_charge_code_views.xml",
+        "wizard/wizard_import_helper.xml",
     ]
 }

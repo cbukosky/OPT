@@ -32,6 +32,7 @@
 	  <field name="charge_code_id"/>
 	  <field name="approval_ids"/>
 	  <field name="approval_count"/>
+	  <field name="proxy_ids"/>
 	  <field name="approved"/>
 	</xpath>
 	<xpath expr="//field[@name='order_line']//tree[1]//field[@name='product_uom']" position="after">

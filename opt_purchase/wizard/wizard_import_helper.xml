@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record model="ir.ui.view" id="wizard_import_helper">
+            <field name="name">Import Helper</field>
+            <field name="model">wizard.import.helper</field>
+            <field name="priority">16</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+                <form string="Import Helper" create="true">
+                    <sheet>
+                        <div colspan="2" class="oe_form_box_info">
+                            <div class="alert alert-success" role="alert">
+                              <h4 class="alert-heading" role="alert">Upload CSV or XLSL file.</h4>
+                            </div>
+                         </div>
+
+                         <group>  
+			   <field name="name" required="1"/>
+                           <field name="file" widget="file" required="1"/>
+			 </group>
+			 
+                    </sheet>
+                    <footer>
+                        <button string="Upload" type="object" name="action_import_records" class="oe_highlight"/>
+                        <button string="Cancel" special="cancel" class="oe_link"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+	<act_window id="action_open_wizard_import_helper"
+		name="Import Helper"
+		res_model="wizard.import.helper"
+		target="new"
+		view_mode="form"
+		view_id="wizard_import_helper"
+		multi="False"
+		context="{}"/>
+	<menuitem id="menu_purchase_wizard" name="Purchase Import Helper" action="action_open_wizard_import_helper" parent="purchase.menu_purchase_config" groups="purchase.group_purchase_manager" sequence="18"/>
+    
+
+    </data>
+</odoo>
