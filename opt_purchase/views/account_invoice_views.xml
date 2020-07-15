@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <record id="view_invoice_supplier_form_inherit_opt" model="ir.ui.view">
+      <field name="name">invoice_supplier_form_inherit_opt</field>
+      <field name="model">account.invoice</field>
+      <field name="inherit_id" ref="account.invoice_supplier_form" />
+      <field name="arch" type="xml">
+	<xpath expr="//field[@name='partner_bank_id']" position="after">
+	  <field name="project_code"/>
+	</xpath>
+	<xpath expr="//field[@name='product_id']" position="after">
+	  <field name="charge_code_id"/>
+	  <!-- <field name="account_group_id"/> -->
+	  <field name="export_sequence"/>
+	</xpath>
+      </field>
+    </record>
+    
+  </data>
+</odoo>
