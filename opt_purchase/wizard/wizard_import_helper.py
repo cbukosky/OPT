@@ -9,7 +9,7 @@ class WizardImportHelper(models.TransientModel):
     _name = 'wizard.import.helper'
     _description = 'Import Helper Wizard'
 
-    name = fields.Selection([('purchase.charge.code', 'Purchase Charge Code'), ('purchase.level', 'Purchase Level')], string='Model')
+    name = fields.Selection([('purchase.charge.code', 'Purchase Charge Code'), ('purchase.account.group', 'Account Group')], string='Model')
     file = fields.Binary(string='Import File')
 
     # a helper function to set the criteria of what is considered a duplicate
@@ -21,11 +21,11 @@ class WizardImportHelper(models.TransientModel):
                 ('name', '=', record.name),
                 # ('project_opt', '=', record.project_opt)
             ]
-        elif self.name == 'purchase.level':
+        elif self.name == 'purchase.account.group':
             domain = [
                 ('id', '!=', record.id),
                 ('name', '=', record.name),
-                ('user_id', '=', record.user_id.id),
+                # ('user_id', '=', record.user_id.id),
                 # ('approval_min', '=', record.approval_min)
             ]
         # elif self.name == 'purchase.proxy':
@@ -81,18 +81,18 @@ class WizardImportHelper(models.TransientModel):
                     to_unlink |= record_id
                     if self.name == 'purchase.charge.code':
                         existing_record_id.write({'project_opt': record_id.project_opt})
-                    if self.name == 'purchase.level':
-                        existing_record_id.write({'approval_min': record_id.approval_min})
+                    # if self.name == 'purchase.level':
+                    #     existing_record_id.write({'approval_min': record_id.approval_min})
                     record_id = existing_record_id
-                if self.name == 'purchase.charge.code':
-                    record_id.write({
-                        'active': True,
-                    })
+                # if self.name == 'purchase.charge.code':
+                record_id.write({
+                    'active': True,
+                })
                 corrected_record_lst.append(record)
             to_unlink.unlink()
 
-            if self.name == 'purchase.charge.code':
-                self.env[model_name].search([('id', 'not in', corrected_record_lst)]).write({'active': False})
+            # if self.name == 'purchase.charge.code':
+            self.env[model_name].search([('id', 'not in', corrected_record_lst)]).write({'active': False})
                 # print(corrected_record_lst)
-            
+
         return {'type': 'ir.actions.act_window_close'}
