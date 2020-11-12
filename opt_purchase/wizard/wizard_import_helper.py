@@ -74,14 +74,12 @@ class WizardImportHelper(models.TransientModel):
                 'file': decoded_file,
                 'file_type': 'text/csv'
             })
-        # import pudb; pudb.set_trace()
         data_gen = import_id._read_file(options)
         # the first item from data generator is header
         header = next(data_gen)
         valid_fields = import_id.get_fields(model_name)
         parsed_header, matches = import_id._match_headers(iter([header]), valid_fields, options)
         recognized_fields = [(matches[i] and matches[i][0]) or False for i in range(len(parsed_header))]
-        import pudb; pudb.set_trace()
         result = import_id.sudo().do(recognized_fields, parsed_header, options)
         rids = result.get('ids')
         if not rids:
