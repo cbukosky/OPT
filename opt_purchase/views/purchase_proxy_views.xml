@@ -12,17 +12,17 @@
     	  <sheet>
     	    <group>
     	      <group>
-    		<field name="approver_id"/>
+    		        <field name="approver_id"/>
     	      </group>
     	      <group>
-    		<field name="proxy_id"/>
+    		        <field name="proxy_id"/>
     	      </group>
     	    </group>
     	  </sheet>
     	</form>
       </field>
     </record>
-    
+
     <record id="view_purchase_proxy_tree" model="ir.ui.view">
       <field name="name">purchase.proxy.tree</field>
       <field name="model">purchase.proxy</field>
@@ -44,6 +44,6 @@
     </record>
 
     <menuitem id="menu_purchase_proxy" name="Purchase Proxy" action="action_purchase_proxy_tree" parent="purchase.menu_purchase_config" sequence="17"/>
-    
+
   </data>
 </odoo>

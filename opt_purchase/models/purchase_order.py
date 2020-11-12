@@ -11,7 +11,7 @@ class PurchaseAccountGroup(models.Model):
 
     name = fields.Char('Account Group', required=True)
     active =fields.Boolean('Active', default=True)
-    
+
     # _sql_constraints = [
     #     ('name_uniq', 'unique (name)', 'Account Group(name) must be unique!')
     # ]
@@ -33,12 +33,12 @@ class PurchaseChargeCode(models.Model):
 class PurchaseLevel(models.Model):
     _name = 'purchase.level'
     _description = 'purchase.level'
-    
+
     name = fields.Char('Project ID')
     user_id = fields.Many2one('res.users', ondelete='set null', string='User')
-    approval_min = fields.Float('Approval Min')
+    approval_min = fields.Float('Approval Min') # TODO: Shouldnt this be monetary?
 
-    
+
 class PurchaseApproval(models.Model):
     _name = 'purchase.approval'
     _description = 'Purchase Approval'
@@ -49,8 +49,17 @@ class PurchaseApproval(models.Model):
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
 
     def _compute_can_edit_approval(self):
+        # The current user can approve if he is the approver in the approvals table or
+        # if he is a proxy for a user that is in the approvals table
+        proxy_model = self.env['purchase.proxy']
+        approvals_model = self.env['purchase.approval']
+
         for approval in self:
-            approval.can_edit_approval = not approval.user_id or approval.user_id == self.env.user
+            approval.can_edit_approval = not approval.user_id or \
+                            approval.user_id == self.env.user or \
+                            proxy_model.filtered([('proxy_id', '=', self.env.user)]).mapped('approver_id') in approvals_model.mapped('user_id')
+
+
 
 
 class PurchaseProxy(models.Model):
@@ -61,11 +70,11 @@ class PurchaseProxy(models.Model):
     proxy_id = fields.Many2one('res.users', delete='set null', string='Proxy')
     active = fields.Boolean('Active')
 
-    
+
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
-    
-    charge_code_id = fields.Many2one('purchase.charge.code', ondelete='restrict', string='Charge Code')
+
+    charge_code_id = fields.Many2one('purchase.charge.code', ondelete='restrict', string='Charge Code', required=True)
     approval_ids = fields.One2many('purchase.approval', 'order_id', string='Approvals', store=True, readonly=True, copy=False)  # use a wizard to let user update
     approval_count = fields.Integer('Approval Count', readonly=True, compute='_compute_approval_count')
     approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved')
@@ -81,11 +90,11 @@ class PurchaseOrder(models.Model):
     def _compute_approval_count(self):
         for order in self:
             order.approval_count = len(order.approval_ids)
-            
+
     def _compute_show_action_approve(self):
         for order in self:
             order.show_action_approve = False
-            if order.state == 'draft' and self.env.user in order.approval_ids.mapped('user_id'):
+            if order.state == 'draft' and (self.env.user in order.approval_ids.mapped('user_id') or self.env.user in order.proxy_ids.mapped('proxy_id')):
                 order.show_action_approve = True
 
     def _get_approval_users(self):
@@ -106,7 +115,7 @@ class PurchaseOrder(models.Model):
                     if approval.user_id not in new_user_ids:
                         to_unlink |= approval
                 to_unlink.unlink()
-                diff_user_ids = new_user_ids - existing_user_ids 
+                diff_user_ids = new_user_ids - existing_user_ids
                 for user in diff_user_ids:
                     new_approval = self.env['purchase.approval'].create({
                         'user_id': user.id,
@@ -127,31 +136,39 @@ class PurchaseOrder(models.Model):
             proxy_partners = [p.approver_id.partner_id for p in new_proxy_ids]
             if proxy_partners:
                 proxy_template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
-        
+
     def action_approve(self):
         self.ensure_one()
         action_id = self.env.ref("opt_purchase.action_purchase_approval_tree")
         action_data = action_id.read()[0]
-        
         action_data.update({
             'domain': [('order_id', '=', self.id)],
             'context': {'default_order_id': self.id},
             'target': 'new'
         })
-        
+
         return action_data
 
     @api.multi
     def button_confirm(self):
         self.action_compute_approval_ids()
-        invalid_orders = self.filtered(lambda o: not o.approved) 
-        if invalid_orders:
-            raise ValidationError(_('{} are not approved by all approvers, please contact the Manager.'.format([o.name for o in invalid_orders])))
+        inactive_charge_codes = self.filtered(lambda o: not o.charge_code_id.active)
+        if inactive_charge_codes:
+            raise ValidationError(_('{} Charge code is inactive, please contact the Manager.'.format([o.name for o in inactive_charge_codes])))
+
+        inactive_account_groups = self.filtered(lambda o: not all(o.order_line.mapped('account_group_id.active')))
+        if inactive_account_groups:
+            raise ValidationError(_('{} Account Group in Purchase Order line is inactive, please contact the Manager.'.format([o.name for o in inactive_account_groups])))
+
+        not_approved_orders = self.filtered(lambda o: not o.approved)
+        if not_approved_orders:
+            raise ValidationError(_('{} are not approved by all approvers, please contact the Manager.'.format([o.name for o in not_approved_orders])))
+
         res = super(PurchaseOrder, self).button_confirm()
         return res
 
-    
+
 class PurchaseOrderLine(models.Model):
     _inherit = 'purchase.order.line'
 
-    account_group_id = fields.Many2one('purchase.account.group', ondelete='restrict', string='Account Group')
+    account_group_id = fields.Many2one('purchase.account.group', ondelete='restrict', string='Account Group', required=True)

@@ -16,14 +16,53 @@
                             </div>
                          </div>
 
-                         <group>  
-			   <field name="name" required="1"/>
+                         <group>
+			                     <field name="name" required="1"/>
                            <field name="file" widget="file" required="1"/>
-			 </group>
-			 
+			                  </group>
+
                     </sheet>
                     <footer>
                         <button string="Upload" type="object" name="action_import_records" class="oe_highlight"/>
+                        <button string="Cancel" special="cancel" class="oe_link"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="wizard_purchase_levels">
+            <field name="name">Set Purchase Levels</field>
+            <field name="model">wizard.import.helper</field>
+            <field name="priority">16</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+                <form string="Set Purchase Levels" create="true">
+                    <sheet>
+                          <span style="font-size:20px;font-weight:bold;">Project ID: <field name="project_id" readonly='1'/></span>
+
+                          <group col='2'>
+
+                            <group col='1' string="User">
+                                <field name="currency_id" invisible="1"/>
+                                <field name="user0" nolabel='1'/>
+                                <field name="user1" nolabel='1'/>
+                                <field name="user2" nolabel='1'/>
+                                <field name="user3" nolabel='1'/>
+                                <field name="user4" nolabel='1'/>
+                                <field name="user5" nolabel='1'/>
+                            </group>
+                            <group col='1' string="Amount">
+                                <field name="amount0" nolabel='1'/>
+                                <field name="amount1" nolabel='1'/>
+                                <field name="amount2" nolabel='1'/>
+                                <field name="amount3" nolabel='1'/>
+                                <field name="amount4" nolabel='1'/>
+                                <field name="amount5" nolabel='1'/>
+                            </group>
+                          </group>
+                    </sheet>
+                    <footer>
+                        <button string="OK" type="object" name="action_set_purchase_levels" class="oe_highlight"/>
                         <button string="Cancel" special="cancel" class="oe_link"/>
                     </footer>
                 </form>
@@ -39,7 +78,6 @@
 		multi="False"
 		context="{}"/>
 	<menuitem id="menu_purchase_wizard" name="Purchase Import Helper" action="action_open_wizard_import_helper" parent="purchase.menu_purchase_config" groups="purchase.group_purchase_manager" sequence="18"/>
-    
 
     </data>
 </odoo>
