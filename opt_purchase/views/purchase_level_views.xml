@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data noupdate="0">    
+  <data noupdate="0">
+
+    <!-- <record id="view_purchase_level_search" model="ir.ui.view">
+      <field name="name">purchase.level.search</field>
+      <field name="model">purchase.level</field>
+      <field name="arch" type="xml">
+        <filter string="Active" name="approval_min" domain="[('approval_min', '&gt;', 10)]"/>
+      </field>
+    </record> -->
+
     <record id="view_purchase_level_tree" model="ir.ui.view">
       <field name="name">purchase.level.tree</field>
       <field name="model">purchase.level</field>
       <field name="arch" type="xml">
-	<tree editable="bottom">
-	  <field name="name"/>
-	  <field name="user_id"/>
-	  <field name="approval_min"/>
-	</tree>
+    	<tree editable="bottom">
+    	  <field name="name"/>
+    	  <field name="user_id"/>
+    	  <field name="approval_min"/>
+    	</tree>
       </field>
     </record>
 
@@ -21,7 +30,7 @@
       <field name="context">{}</field>
     </record>
 
-    <menuitem id="menu_purchase_level" name="Purchase Level" action="action_purchase_level_tree" parent="purchase.menu_purchase_config" sequence="16"/>
+    <menuitem id=" " name="Purchase Level" action="action_purchase_level_tree" parent="purchase.menu_purchase_config" sequence="16"/>
 
   </data>
 </odoo>

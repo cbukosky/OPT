@@ -3,6 +3,9 @@ import base64
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 import re
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class WizardImportHelper(models.TransientModel):
@@ -11,6 +14,35 @@ class WizardImportHelper(models.TransientModel):
 
     name = fields.Selection([('purchase.charge.code', 'Purchase Charge Code'), ('purchase.account.group', 'Account Group')], string='Model')
     file = fields.Binary(string='Import File')
+    project_id = fields.Char()
+
+    currency_id = fields.Many2one(comodel_name='res.currency', default=lambda self: self._get_currency())  # default='_get_currency()'
+
+    user = fields.Many2one(comodel_name='res.users', string='User')
+    amount = fields.Char(string='Amount')
+
+    user0 = fields.Many2one(comodel_name='res.users')
+    amount0 = fields.Monetary(default=0)
+
+    user1 = fields.Many2one(comodel_name='res.users')
+    amount1 = fields.Monetary(default=500)
+
+    user2 = fields.Many2one(comodel_name='res.users')
+    amount2 = fields.Monetary(default=1000)
+
+    user3 = fields.Many2one(comodel_name='res.users')
+    amount3 = fields.Monetary(default=5000)
+
+    user4 = fields.Many2one(comodel_name='res.users')
+    amount4 = fields.Monetary(default=10000)
+
+    user5 = fields.Many2one(comodel_name='res.users')
+    amount5 = fields.Monetary(default=50000)
+
+    def _get_currency(self):
+        user = self.env['res.users'].browse(self.env.context['uid'])
+        return user.company_id.currency_id
+
 
     # a helper function to set the criteria of what is considered a duplicate
     def _get_existing_record_searching_domain(self, record):
@@ -42,13 +74,15 @@ class WizardImportHelper(models.TransientModel):
                 'file': decoded_file,
                 'file_type': 'text/csv'
             })
+        # import pudb; pudb.set_trace()
         data_gen = import_id._read_file(options)
         # the first item from data generator is header
         header = next(data_gen)
         valid_fields = import_id.get_fields(model_name)
         parsed_header, matches = import_id._match_headers(iter([header]), valid_fields, options)
         recognized_fields = [(matches[i] and matches[i][0]) or False for i in range(len(parsed_header))]
-        result = import_id.do(recognized_fields, parsed_header, options)
+        import pudb; pudb.set_trace()
+        result = import_id.sudo().do(recognized_fields, parsed_header, options)
         rids = result.get('ids')
         if not rids:
             raise ValidationError(_('Cannot create/find {} records from the uploaded file.\n'
@@ -59,6 +93,52 @@ class WizardImportHelper(models.TransientModel):
                                                                result.get('messages'))))
         return rids
 
+    @api.multi
+    def action_set_purchase_levels(self):
+        """
+        Wizard method to assign purchase levels (users and quantities) to a newly imported Project ID.
+        The context contains a list of Project IDs. This function will be called once for each Project ID in the
+        list and each iteration will pop the first element from the list, decreasing its size by one each time until empty.
+        """
+        self.ensure_one()
+
+        new_project_ids = self._context.get('new_project_ids')
+
+        # Case when all the project IDs have been assigned purchase levels
+        if not new_project_ids or new_project_ids == '':
+            return {'type': 'ir.actions.act_window_close'}
+
+        project_id = new_project_ids.pop(0)
+        _logger.info('Setting purchase levels for Project ID: %s' % project_id)
+
+        # Loop through all the user fields in the wizard view
+        for i in range(6):
+            user = getattr(self, 'user%s' % i)
+            amount = getattr(self, 'amount%s' % i)
+
+            if user:
+                purchase_level_model = self.env['purchase.level']
+                if not purchase_level_model.search([('name','=', project_id), ('user_id','=', user.id)]):
+                    purchase_level_model.create({
+                        'name': project_id,
+                        'user_id': user.id,
+                        'approval_min': amount
+                    })
+
+        if new_project_ids:
+            return {
+                'type': 'ir.actions.act_window',
+                'name': 'Set Purchase Levels',
+                'view_type': 'form',
+                'view_mode': 'form',
+                'res_model': 'wizard.import.helper',
+                'views': [(self.env.ref('opt_purchase.wizard_purchase_levels').id, 'form')],
+                'target': 'new',
+                'context': {'new_project_ids': new_project_ids,'default_project_id': new_project_ids[0]},
+            }
+
+        return {'type': 'ir.actions.act_window_close'}
+
     def action_import_records(self):
         self.ensure_one()
         if self.name and self.file:
@@ -66,33 +146,58 @@ class WizardImportHelper(models.TransientModel):
             decoded_file = base64.b64decode(self.file)
             options = {'quoting': '"', 'separator': ',', 'headers': True}
             record_lst = self.do_import(model_name, decoded_file, options)
-
             # go through our record lst and unlink any duplicated ones
             # according to our duplicate domain
             corrected_record_lst = []
             to_unlink = self.env[model_name]
+            new_project_ids = []
+            all_project_ids = self.env['purchase.charge.code'].search([('active', '=', True)]).mapped('project_opt')
+
             for i in range(len(record_lst)):
                 record = record_lst[i]
                 record_id = self.env[model_name].browse(record)
                 existing_record_id = self.env[model_name].with_context(active_test=False).search(self._get_existing_record_searching_domain(record_id), limit=1)
                 if existing_record_id:
-                    # print(existing_record_id, record_id)
                     record = existing_record_id.id
                     to_unlink |= record_id
                     if self.name == 'purchase.charge.code':
-                        existing_record_id.write({'project_opt': record_id.project_opt})
+                        existing_record_id.sudo().write({'project_opt': record_id.project_opt})
                     # if self.name == 'purchase.level':
                     #     existing_record_id.write({'approval_min': record_id.approval_min})
                     record_id = existing_record_id
+                else:
+                    # If a new Project ID is found during import, the process will interrupt and a new dialog will
+                    # open that will require the user to select approving users and approval values for the new Project ID
+                    if self.name == 'purchase.charge.code' and record_id.project_opt not in all_project_ids:
+                        new_project_ids.append(record_id.project_opt)
+
                 # if self.name == 'purchase.charge.code':
-                record_id.write({
+
+                record_id.sudo().write({
                     'active': True,
                 })
                 corrected_record_lst.append(record)
-            to_unlink.unlink()
+            to_unlink.sudo().unlink()
 
             # if self.name == 'purchase.charge.code':
-            self.env[model_name].search([('id', 'not in', corrected_record_lst)]).write({'active': False})
-                # print(corrected_record_lst)
+            self.env[model_name].sudo().search([('id', 'not in', corrected_record_lst)]).write({'active': False})
+
+        if new_project_ids:
+            # return wizard for setting purchase Levels
+            # self.popup()
+            # action_id = self.env.ref("opt_purchase.action_open_wizard_purchase_levels")
+            # return action_id.read()[0]
+
+            self.project_id = new_project_ids[0]
+            return {
+                'type': 'ir.actions.act_window',
+                'name': 'Set Purchase Levels',
+                'view_type': 'form',
+                'view_mode': 'form',
+                'res_model': 'wizard.import.helper',
+                'views': [(self.env.ref('opt_purchase.wizard_purchase_levels').id, 'form')],
+                'target': 'new',
+                'context': {'new_project_ids': new_project_ids,'default_project_id': self.project_id},
+            }
 
         return {'type': 'ir.actions.act_window_close'}
