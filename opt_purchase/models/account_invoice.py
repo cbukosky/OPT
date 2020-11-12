@@ -82,8 +82,6 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def action_export(self):
-        print('Exporting')
-
         self = self.env['account.invoice'].search([
             ('id', 'in', self.ids),
             ('state', 'not in', ('draft', 'cancel')),
