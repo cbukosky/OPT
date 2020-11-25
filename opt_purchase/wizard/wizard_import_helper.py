@@ -16,7 +16,7 @@ class WizardImportHelper(models.TransientModel):
     file = fields.Binary(string='Import File')
     project_id = fields.Char()
 
-    currency_id = fields.Many2one(comodel_name='res.currency', default=lambda self: self._get_currency())  # default='_get_currency()'
+    currency_id = fields.Many2one(comodel_name='res.currency', default=lambda self: self._get_currency())
 
     user = fields.Many2one(comodel_name='res.users', string='User')
     amount = fields.Char(string='Amount')
@@ -44,7 +44,7 @@ class WizardImportHelper(models.TransientModel):
         return user.company_id.currency_id
 
 
-    # a helper function to set the criteria of what is considered a duplicate
+    # A helper function to set the criteria of what is considered a duplicate
     def _get_existing_record_searching_domain(self, record):
         domain = []
         if self.name == 'purchase.charge.code':
@@ -75,7 +75,7 @@ class WizardImportHelper(models.TransientModel):
                 'file_type': 'text/csv'
             })
         data_gen = import_id._read_file(options)
-        # the first item from data generator is header
+        # The first item from data generator is header
         header = next(data_gen)
         valid_fields = import_id.get_fields(model_name)
         parsed_header, matches = import_id._match_headers(iter([header]), valid_fields, options)
@@ -107,6 +107,8 @@ class WizardImportHelper(models.TransientModel):
             return {'type': 'ir.actions.act_window_close'}
 
         project_id = new_project_ids.pop(0)
+        # Unlink previous purchase levels for the current project ID
+        old_records = self.env['purchase.level'].search([('name', '=', project_id)]).unlink()
         _logger.info('Setting purchase levels for Project ID: %s' % project_id)
 
         # Loop through all the user fields in the wizard view
@@ -144,7 +146,7 @@ class WizardImportHelper(models.TransientModel):
             decoded_file = base64.b64decode(self.file)
             options = {'quoting': '"', 'separator': ',', 'headers': True}
             record_lst = self.do_import(model_name, decoded_file, options)
-            # go through our record lst and unlink any duplicated ones
+            # Go through our record lst and unlink any duplicated ones
             # according to our duplicate domain
             corrected_record_lst = []
             to_unlink = self.env[model_name]
@@ -159,14 +161,10 @@ class WizardImportHelper(models.TransientModel):
                 if existing_record_id:
                     record_id = existing_record_id.id
                     to_unlink |= record
-                    # if self.name == 'purchase.charge.code':
-                    #     existing_record_id.sudo().write({'project_opt': record.project_opt})
-                    # if self.name == 'purchase.level':
-                    #     existing_record_id.write({'approval_min': record_id.approval_min})
                     record = existing_record_id
 
                 pid = record.project_opt
-                print("Importing Project ID: %s" % pid)
+                _logger.info("Importing Project ID: %s" % pid)
                 # If a new Project ID is found during import, the process will interrupt and a new dialog will
                 # open that will require the user to select approving users and approval values for the new Project ID
                 # A Product ID is considered new if it is not assigned to any charge code or if it is assigned to a charge Code
@@ -174,7 +172,6 @@ class WizardImportHelper(models.TransientModel):
                 if self.name == 'purchase.charge.code' \
                   and pid not in new_project_ids \
                   and (pid not in charge_code_project_ids or (pid in charge_code_project_ids and pid not in purchase_level_project_ids)):
-                    print("NEW: %s" % pid)
                     new_project_ids.append(pid)
 
                 record.sudo().write({
@@ -186,7 +183,7 @@ class WizardImportHelper(models.TransientModel):
             self.env[model_name].sudo().search([('id', 'not in', corrected_record_lst)]).write({'active': False})
 
         if new_project_ids:
-            # return wizard for setting purchase Levels for the new Project IDs
+            # Return wizard for setting purchase Levels for the new Project IDs
 
             self.project_id = new_project_ids[0]
             return {
