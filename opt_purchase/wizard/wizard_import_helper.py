@@ -51,7 +51,7 @@ class WizardImportHelper(models.TransientModel):
             domain = [
                 ('id', '!=', record.id),
                 ('name', '=', record.name),
-                # ('project_opt', '=', record.project_opt)
+                ('project_opt', '=', record.project_opt)
             ]
         elif self.name == 'purchase.account.group':
             domain = [
@@ -94,7 +94,7 @@ class WizardImportHelper(models.TransientModel):
     @api.multi
     def action_set_purchase_levels(self):
         """
-        Wizard method to assign purchase levels (users and quantities) to a newly imported Project ID.
+        Wizard method to assign purchase levels (users and amounts) to a newly imported Project ID.
         The context contains a list of Project IDs. This function will be called once for each Project ID in the
         list and each iteration will pop the first element from the list, decreasing its size by one each time until empty.
         """
@@ -149,42 +149,44 @@ class WizardImportHelper(models.TransientModel):
             corrected_record_lst = []
             to_unlink = self.env[model_name]
             new_project_ids = []
-            all_project_ids = self.env['purchase.charge.code'].search([('active', '=', True)]).mapped('project_opt')
+            charge_code_project_ids = self.env['purchase.charge.code'].search([('active', '=', True)]).mapped('project_opt')
+            purchase_level_project_ids = self.env['purchase.level'].search([]).mapped('name')
 
             for i in range(len(record_lst)):
-                record = record_lst[i]
-                record_id = self.env[model_name].browse(record)
-                existing_record_id = self.env[model_name].with_context(active_test=False).search(self._get_existing_record_searching_domain(record_id), limit=1)
+                record_id = record_lst[i]
+                record = self.env[model_name].browse(record_id)
+                existing_record_id = self.env[model_name].with_context(active_test=False).search(self._get_existing_record_searching_domain(record), limit=1)
                 if existing_record_id:
-                    record = existing_record_id.id
-                    to_unlink |= record_id
-                    if self.name == 'purchase.charge.code':
-                        existing_record_id.sudo().write({'project_opt': record_id.project_opt})
+                    record_id = existing_record_id.id
+                    to_unlink |= record
+                    # if self.name == 'purchase.charge.code':
+                    #     existing_record_id.sudo().write({'project_opt': record.project_opt})
                     # if self.name == 'purchase.level':
                     #     existing_record_id.write({'approval_min': record_id.approval_min})
-                    record_id = existing_record_id
-                else:
-                    # If a new Project ID is found during import, the process will interrupt and a new dialog will
-                    # open that will require the user to select approving users and approval values for the new Project ID
-                    if self.name == 'purchase.charge.code' and record_id.project_opt not in all_project_ids:
-                        new_project_ids.append(record_id.project_opt)
+                    record = existing_record_id
 
-                # if self.name == 'purchase.charge.code':
+                pid = record.project_opt
+                print("Importing Project ID: %s" % pid)
+                # If a new Project ID is found during import, the process will interrupt and a new dialog will
+                # open that will require the user to select approving users and approval values for the new Project ID
+                # A Product ID is considered new if it is not assigned to any charge code or if it is assigned to a charge Code
+                # but it does not have any purchase levels associated with it
+                if self.name == 'purchase.charge.code' \
+                  and pid not in new_project_ids \
+                  and (pid not in charge_code_project_ids or (pid in charge_code_project_ids and pid not in purchase_level_project_ids)):
+                    print("NEW: %s" % pid)
+                    new_project_ids.append(pid)
 
-                record_id.sudo().write({
+                record.sudo().write({
                     'active': True,
                 })
-                corrected_record_lst.append(record)
+                corrected_record_lst.append(record_id)
             to_unlink.sudo().unlink()
 
-            # if self.name == 'purchase.charge.code':
             self.env[model_name].sudo().search([('id', 'not in', corrected_record_lst)]).write({'active': False})
 
         if new_project_ids:
-            # return wizard for setting purchase Levels
-            # self.popup()
-            # action_id = self.env.ref("opt_purchase.action_open_wizard_purchase_levels")
-            # return action_id.read()[0]
+            # return wizard for setting purchase Levels for the new Project IDs
 
             self.project_id = new_project_ids[0]
             return {
