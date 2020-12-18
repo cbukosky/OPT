@@ -77,12 +77,12 @@ class PurchaseOrder(models.Model):
     charge_code_id = fields.Many2one('purchase.charge.code', ondelete='restrict', string='Charge Code', required=True)
     approval_ids = fields.One2many('purchase.approval', 'order_id', string='Approvals', store=True, readonly=True, copy=False)  # use a wizard to let user update
     approval_count = fields.Integer('Approval Count', readonly=True, compute='_compute_approval_count')
-    approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved')
+    approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved', store=True)
     show_action_approve = fields.Boolean('Show Approve Button', readonly=True, compute='_compute_show_action_approve')
 
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
 
-
+    @api.depends('approval_ids','approval_ids.approved')
     def _compute_approved(self):
         for order in self:
             order.approved = order.approval_ids and all(order.approval_ids.mapped('approved')) or False
