@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <function model="account.invoice" name="_unlink_confirm_invoice_action"/>
+  </data>
+
+  <data noupdate="0">
+    <record id="action_export_opt" model="ir.actions.server">
+      <field name="name">Export Bills</field>
+      <field name="model_id" ref="account.model_account_invoice"/>
+      <field name="state">code</field>
+      <field name="binding_model_id" ref="account.model_account_invoice"/>
+      <field name="binding_type">action</field>
+      <field name="type">ir.actions.server</field>
+      <field name="code"><![CDATA[
+if records.filtered(lambda bill: bill.type != 'in_invoice'):
+    raise Warning('You can only export Vendor Bills.')
+if records.filtered(lambda bill: bill.state != 'open'):
+    raise Warning('The bill must in the approved state in order to export it.')
+action = records.action_export()
+]]></field>
+    </record>
+  </data>
+</odoo>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+
+    <record id="view_purchase_approval_tree" model="ir.ui.view">
+      <field name="name">purchase.approval.tree</field>
+      <field name="model">purchase.approval</field>
+      <field name="arch" type="xml">
+        <tree editable="bottom" create="0" delete="0">
+      	  <field name="order_id" invisible="1"/>
+      	  <field name="user_id" readonly="1"/>
+      	  <field name="can_edit_approval" invisible="1"/>
+      	  <field name="approved" attrs="{'readonly': [('can_edit_approval', '=', False)]}"/>
+      	</tree>
+      </field>
+    </record>
+
+    <record id="action_purchase_approval_tree" model="ir.actions.act_window">
+      <field name="name">Purchase Approval</field>
+      <field name="res_model">purchase.approval</field>
+      <field name="view_type">form</field>
+      <field name="view_mode">tree</field>
+      <field name="target">fullscreen</field>
+      <field name="nodestroy" eval="False"/>
+      <field name="context">{}</field>
+    </record>
+
+    <record id="view_purchase_order_form_view_inherit_opt" model="ir.ui.view">
+      <field name="name">purchase_order_form_view_inherit_opt</field>
+      <field name="model">purchase.order</field>
+      <field name="inherit_id" ref="purchase.purchase_order_form" />
+      <field name="arch" type="xml">
+      	<xpath expr="//field[@name='currency_id']" position="after">
+      	  <field name="charge_code_id"/>
+      	  <field name="approval_ids"/>
+      	  <field name="approval_count"/>
+      	  <field name="proxy_ids"/>
+      	  <field name="approved"/>
+      	</xpath>
+      	<xpath expr="//field[@name='order_line']//tree[1]//field[@name='product_uom']" position="after">
+      	  <field name="account_group_id"/>
+      	</xpath>
+      	<xpath expr="//button[@name='action_rfq_send']" position="attributes">
+      	  <attribute name="attrs">{'invisible': ['|', ('approved', '=', False)]}</attribute>
+      	</xpath>
+      	<xpath expr="//button[@id='draft_confirm']" position="attributes">
+      	  <attribute name="attrs">{'invisible': ['|', ('approved', '=', False)]}</attribute>
+      	</xpath>
+
+      	<xpath expr="//button[@name='button_approve']" position="replace">
+      	  <field name="show_action_approve" invisible="1"/>
+      	  <button name="action_approve" string="Approve" type="object" class="oe_highlight" attrs="{'invisible': [('show_action_approve', '=', False)]}"/>
+      	  <button name="action_compute_approval_ids" string="Generate Approvals" type="object" class="oe_highlight" attrs="{'invisible': ['|', ('state', 'not in', ('draft')), ('approval_count', '!=', 0)]}"/>
+      	  <button name="action_compute_approval_ids" string="Update Approvals" type="object" class="" attrs="{'invisible': ['|', ('state', 'not in', ('draft')), ('approval_count', '=', 0)]}"/>
+      	</xpath>
+
+      </field>
+    </record>
+
+  </data>
+</odoo>
