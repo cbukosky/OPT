@@ -17,9 +17,9 @@
                          </div>
 
                          <group>
-			                     <field name="name" required="1"/>
+			               <field name="name" required="1"/>
                            <field name="file" widget="file" required="1"/>
-			                  </group>
+			             </group>
 
                     </sheet>
                     <footer>

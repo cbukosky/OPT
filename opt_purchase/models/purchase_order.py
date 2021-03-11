@@ -12,11 +12,6 @@ class PurchaseAccountGroup(models.Model):
     name = fields.Char('Account Group', required=True)
     active =fields.Boolean('Active', default=True)
 
-    # _sql_constraints = [
-    #     ('name_uniq', 'unique (name)', 'Account Group(name) must be unique!')
-    # ]
-
-
 class PurchaseChargeCode(models.Model):
     _name = 'purchase.charge.code'
     _description = 'Purchase Charge Code'
@@ -25,18 +20,13 @@ class PurchaseChargeCode(models.Model):
     project_opt = fields.Char('Project ID')
     active = fields.Boolean('Active')
 
-    # _sql_constraints = [
-    #     ('name_uniq', 'unique (name)', 'Charge Code(name) must be unique!')
-    # ]
-
-
 class PurchaseLevel(models.Model):
     _name = 'purchase.level'
     _description = 'purchase.level'
 
     name = fields.Char('Project ID')
     user_id = fields.Many2one('res.users', ondelete='set null', string='User')
-    approval_min = fields.Float('Approval Min') # TODO: Shouldnt this be monetary?
+    approval_min = fields.Float('Approval Min')
 
 
 class PurchaseApproval(models.Model):
@@ -58,7 +48,6 @@ class PurchaseApproval(models.Model):
             approval.can_edit_approval = not approval.user_id or \
                             approval.user_id == self.env.user or \
                             proxy_model.filtered([('proxy_id', '=', self.env.user)]).mapped('approver_id') in approvals_model.mapped('user_id')
-
 
 
 
