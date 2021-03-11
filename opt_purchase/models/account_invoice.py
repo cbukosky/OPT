@@ -55,7 +55,6 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def generate_export_data(self, export_sequence):
-        # header = ['Export #', 'Bill #', 'PO #', 'Project Code', 'Account Code', 'Vendor Name', 'Total']
         header = ['Export #', 'Bill #', 'PO #', 'Charge Code', 'Project Code', 'Vendor Name', 'Total']
 
         # Get the bill lines that have never been exported before. See comment below
@@ -120,8 +119,7 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def action_invoice_to_approve(self):
-        # [mta] Method similar to action_invoice_open but before approval stage
-        # lots of duplicate calls to action_invoice_open, so we remove those already open
+        # Method similar to action_invoice_open but before approval stage
         to_approve_invoices = self.filtered(lambda inv: inv.state != 'open')
         if to_approve_invoices.filtered(lambda inv: not inv.partner_id):
             raise UserError(_("The field Vendor is required, please complete it to request approval of the Vendor Bill."))
@@ -148,14 +146,6 @@ class AccountInvoice(models.Model):
 class AccountInvoiceLine(models.Model):
     _inherit = 'account.invoice.line'
 
-    # charge_code_id = fields.Many2one('purchase.charge.code', ondelete='restrict', string='Charge Code')
-    # account_group_id = fields.Many2one('purchase.account.group', ondelete='restrict', string='Account Group')
-    # project_code = fields.Char(string='Project Code', compute='_compute_project_code', store=True)
     project_code = fields.Many2one('purchase.account.group', string='Project Code', related='purchase_line_id.account_group_id', store=True)
 
-    export_sequence = fields.Char('Export #', readonly=True, copy=False) # TODO: Make this a sequence
-
-    # @api.depends('invoice_id.origin')
-    # def _compute_project_code(self):
-    #     for record in self:
-    #         record.project_code = record.purchase_line_id.account_group_id
+    export_sequence = fields.Char('Export #', readonly=True, copy=False)

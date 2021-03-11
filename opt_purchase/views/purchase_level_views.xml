@@ -2,14 +2,6 @@
 <odoo>
   <data noupdate="0">
 
-    <!-- <record id="view_purchase_level_search" model="ir.ui.view">
-      <field name="name">purchase.level.search</field>
-      <field name="model">purchase.level</field>
-      <field name="arch" type="xml">
-        <filter string="Active" name="approval_min" domain="[('approval_min', '&gt;', 10)]"/>
-      </field>
-    </record> -->
-
     <record id="view_purchase_level_tree" model="ir.ui.view">
       <field name="name">purchase.level.tree</field>
       <field name="model">purchase.level</field>
