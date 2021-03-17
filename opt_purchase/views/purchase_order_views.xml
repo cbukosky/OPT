@@ -43,15 +43,15 @@
       	<xpath expr="//button[@name='action_rfq_send']" position="attributes">
       	  <attribute name="attrs">{'invisible': ['|', ('approved', '=', False)]}</attribute>
       	</xpath>
-      	<xpath expr="//button[@id='draft_confirm']" position="attributes">
-      	  <attribute name="attrs">{'invisible': ['|', ('approved', '=', False)]}</attribute>
-      	</xpath>
-
       	<xpath expr="//button[@name='button_approve']" position="replace">
       	  <field name="show_action_approve" invisible="1"/>
       	  <button name="action_approve" string="Approve" type="object" class="oe_highlight" attrs="{'invisible': [('show_action_approve', '=', False)]}"/>
       	  <button name="action_compute_approval_ids" string="Generate Approvals" type="object" class="oe_highlight" attrs="{'invisible': ['|', ('state', 'not in', ('draft')), ('approval_count', '!=', 0)]}"/>
       	  <button name="action_compute_approval_ids" string="Update Approvals" type="object" class="" attrs="{'invisible': ['|', ('state', 'not in', ('draft')), ('approval_count', '=', 0)]}"/>
+      	</xpath>
+      	<xpath expr="//button[@id='draft_confirm']" position="replace">
+            <field name="show_action_confirm" invisible="1"/>
+            <button name="button_confirm" type="object" string="Confirm Order" id="draft_confirm" attrs="{'invisible': ['|', ('show_action_confirm', '=', False)]}"/>
       	</xpath>
 
       </field>
