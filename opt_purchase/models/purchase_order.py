@@ -156,7 +156,7 @@ class PurchaseOrder(models.Model):
         if inactive_account_groups:
             raise ValidationError(_('{} Account Group in Purchase Order line is inactive, please contact the Manager.'.format([o.name for o in inactive_account_groups])))
 
-        not_approved_orders = self.filtered(lambda o: not o.approved)
+        not_approved_orders = self.filtered(lambda o: o.approval_ids and not o.approved)
         if not_approved_orders:
             raise ValidationError(_('{} are not approved by all approvers, please contact the Manager.'.format([o.name for o in not_approved_orders])))
 
