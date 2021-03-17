@@ -68,6 +68,7 @@ class PurchaseOrder(models.Model):
     approval_count = fields.Integer('Approval Count', readonly=True, compute='_compute_approval_count')
     approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved', store=True)
     show_action_approve = fields.Boolean('Show Approve Button', readonly=True, compute='_compute_show_action_approve')
+    show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
 
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
 
@@ -79,6 +80,12 @@ class PurchaseOrder(models.Model):
     def _compute_approval_count(self):
         for order in self:
             order.approval_count = len(order.approval_ids)
+
+    def _compute_show_action_confirm(self):
+        for order in self:
+            order.show_action_confirm = False
+            if order.state == 'draft' and (not order.approval_ids or order.approved):
+                order.show_action_confirm = True
 
     def _compute_show_action_approve(self):
         for order in self:
