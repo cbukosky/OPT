@@ -84,7 +84,7 @@ class PurchaseOrder(models.Model):
     def _compute_show_action_confirm(self):
         for order in self:
             order.show_action_confirm = False
-            if order.state == 'draft' and (not order.approval_ids or order.approved):
+            if order.state in ('draft', 'sent') and (not order.approval_ids or order.approved):
                 order.show_action_confirm = True
 
     def _compute_show_action_approve(self):
