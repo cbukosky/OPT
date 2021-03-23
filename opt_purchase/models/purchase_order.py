@@ -90,7 +90,7 @@ class PurchaseOrder(models.Model):
     def _compute_show_action_approve(self):
         for order in self:
             order.show_action_approve = False
-            if order.state == 'draft' and (self.env.user in order.approval_ids.mapped('user_id') or self.env.user in order.proxy_ids.mapped('proxy_id')):
+            if order.state in ('draft', 'sent') and (self.env.user in order.approval_ids.mapped('user_id') or self.env.user in order.proxy_ids.mapped('proxy_id')):
                 order.show_action_approve = True
 
     def _get_approval_users(self):
