@@ -51,9 +51,11 @@
       	</xpath>
       	<xpath expr="//button[@id='draft_confirm']" position="replace">
             <field name="show_action_confirm" invisible="1"/>
-            <button name="button_confirm" type="object" string="Confirm Order" id="draft_confirm" attrs="{'invisible': ['|', ('show_action_confirm', '=', False)]}"/>
+            <button name="button_confirm" type="object" class="oe_highlight" string="Confirm Order" id="draft_confirm" states="draft" attrs="{'invisible': ['|', ('show_action_confirm', '=', False)]}"/>
       	</xpath>
-
+        <xpath expr="//button[@id='bid_confirm']" position="replace">
+            <button name="button_confirm" type="object" class="oe_highlight" string="Confirm Order" id="bid_confirm" states="sent" attrs="{'invisible': ['|', ('show_action_confirm', '=', False)]}"/>
+      	</xpath>
       </field>
     </record>
 
