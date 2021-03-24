@@ -68,6 +68,7 @@ class PurchaseOrder(models.Model):
     approval_count = fields.Integer('Approval Count', readonly=True, compute='_compute_approval_count')
     approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved', store=True)
     show_action_approve = fields.Boolean('Show Approve Button', readonly=True, compute='_compute_show_action_approve')
+    show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
 
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
 
@@ -80,10 +81,16 @@ class PurchaseOrder(models.Model):
         for order in self:
             order.approval_count = len(order.approval_ids)
 
+    def _compute_show_action_confirm(self):
+        for order in self:
+            order.show_action_confirm = False
+            if not order.approval_ids or order.approved:
+                order.show_action_confirm = True
+
     def _compute_show_action_approve(self):
         for order in self:
             order.show_action_approve = False
-            if order.state == 'draft' and (self.env.user in order.approval_ids.mapped('user_id') or self.env.user in order.proxy_ids.mapped('proxy_id')):
+            if order.state in ('draft', 'sent') and (self.env.user in order.approval_ids.mapped('user_id') or self.env.user in order.proxy_ids.mapped('proxy_id')):
                 order.show_action_approve = True
 
     def _get_approval_users(self):
@@ -149,7 +156,7 @@ class PurchaseOrder(models.Model):
         if inactive_account_groups:
             raise ValidationError(_('{} Account Group in Purchase Order line is inactive, please contact the Manager.'.format([o.name for o in inactive_account_groups])))
 
-        not_approved_orders = self.filtered(lambda o: not o.approved)
+        not_approved_orders = self.filtered(lambda o: o.approval_ids and not o.approved)
         if not_approved_orders:
             raise ValidationError(_('{} are not approved by all approvers, please contact the Manager.'.format([o.name for o in not_approved_orders])))
 
