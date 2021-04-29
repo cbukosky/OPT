@@ -59,5 +59,15 @@
       </field>
     </record>
 
+    <record id="purchase_order_tree_inherit_po_balance" model="ir.ui.view">
+        <field name="name">purchase.order.tree.inherit.po.balance</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="po_balance"/>
+            </xpath>
+        </field>
+    </record>
   </data>
 </odoo>

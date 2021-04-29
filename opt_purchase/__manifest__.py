@@ -3,8 +3,9 @@
     "name": "OPT: Purchase-related customizations",
     "summary": """OPT: Purchase-related customizations""",
     "description": """
-2166503
-""",
+        Task: 2166503, 2499185
+        - Add calculated field PO balance
+    """,
     "author": "Odoo Inc",
     "license": "OEEL-1",
     "website": "http://www.odoo.com",
