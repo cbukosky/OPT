@@ -74,10 +74,7 @@ class PurchaseOrder(models.Model):
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
 
     po_balance = fields.Float(string='PO Balance', compute='_compute_po_balance')
-    invoice_status = fields.Selection([
-        ('no', 'Nothing to Bill'),
-        ('to invoice', 'Waiting Bills'),
-        ('invoiced', 'No Bill to Receive'),
+    invoice_status = fields.Selection(selection_add=[
         ('closed', 'Closed'),
     ], string='Billing Status', compute='_get_invoiced', store=True, readonly=True, copy=False, default='no')
 
