@@ -55,7 +55,7 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def generate_export_data(self, export_sequence):
-        header = ['Export #', 'Bill #', 'PO #', 'Charge Code', 'Project Code', 'Vendor Name', 'Total']
+        header = ['Export #', 'Bill No', 'Memo', 'Expense Customer', 'Vendor', 'Expense Amount']
 
         # Get the bill lines that have never been exported before. See comment below
         new_export = self.env['account.invoice.line'].search([
@@ -70,7 +70,7 @@ class AccountInvoice(models.Model):
         for bill in self:  # since they want to group by bill
             bill_group = {}
             for line in bill.invoice_line_ids.filtered(lambda l: l.export_sequence == export_sequence):
-                key = (line.export_sequence, line.invoice_id.number, line.purchase_id.name, line.invoice_id.charge_code_id.name, line.project_code.name, line.invoice_id.partner_id.name)
+                key = (line.export_sequence, line.invoice_id.number, line.purchase_id.name, line.invoice_id.charge_code_id.name, line.invoice_id.partner_id.name)
                 if not bill_group.get(key):
                     bill_group[key] = 0.0
                 bill_group[key] += line.price_total  # assuming they are using the same currency here, might need to revise if they want multicurrency
@@ -81,8 +81,6 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def action_export(self):
-        print('Exporting')
-
         self = self.env['account.invoice'].search([
             ('id', 'in', self.ids),
             ('state', 'not in', ('draft', 'cancel')),
