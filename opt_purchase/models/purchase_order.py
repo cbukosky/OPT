@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import time
+from datetime import datetime
+from pytz import timezone
+
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
@@ -37,6 +41,18 @@ class PurchaseApproval(models.Model):
     user_id = fields.Many2one('res.users', ondelete='set null', string='Approver')
     approved = fields.Boolean('Approved')
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
+    # date_approved = fields.Datetime(string='Date', readonly=True)
+
+    def write(self, vals):
+        super(PurchaseApproval, self).write(vals)
+        if self.approved:
+            tz = timezone('US/Eastern')  # Eastern timezone requested by customer
+            self.order_id.message_post(body='%s approved purchase order %s on %s EST' % (
+                                            self.user_id.name,
+                                            self.order_id.name,
+                                            datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
+                                       )
+
 
     def _compute_can_edit_approval(self):
         # The current user can approve if he is the approver in the approvals table or
@@ -69,10 +85,22 @@ class PurchaseOrder(models.Model):
     approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved', store=True)
     show_action_approve = fields.Boolean('Show Approve Button', readonly=True, compute='_compute_show_action_approve')
     show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
-
+    ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account')
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
 
-    @api.depends('approval_ids','approval_ids.approved')
+
+    # @api.onchange('approval_ids')
+    # def onchange_approved(self):
+    #     for approval in self.approval_ids:
+    #         if approval.approved and not approval.date_approved:
+    #             tz = timezone('US/Eastern')  # Eastern timezone requested by customer
+    #             approval.date_approved = fields.Datetime.now
+    #             # approval.order_id.message_post(body='%s approved purchase order %s on %s EST' % (
+    #             #                                 self.user_id.name,
+    #             #                                 self.order_id.name,
+    #             #                                 datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
+
+    @api.depends('approval_ids', 'approval_ids.approved')
     def _compute_approved(self):
         for order in self:
             order.approved = order.approval_ids and all(order.approval_ids.mapped('approved')) or False
