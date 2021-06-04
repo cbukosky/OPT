@@ -55,7 +55,7 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def generate_export_data(self, export_sequence):
-        header = ['Quickbook Name:', 'Export #', 'Bill No', 'Date', 'Due Date', 'Memo', 'Expense Customer', 'Vendor', 'Expense Amount', 'Expense Memo']
+        header = ['Quickbook Name:', 'Export #', 'Bill No', 'Vendor', 'Date', 'Due Date', 'AP Account', 'Memo', 'Expense Account', 'Expense Customer', 'Expense Amount', 'Expense Memo']
 
         # Get the bill lines that have never been exported before. See comment below
         new_export = self.env['account.invoice.line'].search([
@@ -72,11 +72,13 @@ class AccountInvoice(models.Model):
             for line in bill.invoice_line_ids.filtered(lambda l: l.export_sequence == export_sequence):
                 key = (line.export_sequence,
                        line.invoice_id.reference or line.invoice_id.number,
+                       line.invoice_id.partner_id.name,
                        line.invoice_id.date_invoice.strftime("%m/%d/%Y"),
                        line.invoice_id.date_due.strftime("%m/%d/%Y"),
+                       line.ap_gl_account.name,
                        line.purchase_id.name,
+                       line.account_group.name,
                        line.invoice_id.charge_code_id.name,
-                       line.invoice_id.partner_id.name,
                        )
                 if not bill_group.get(key):
                     line_data = [0.0, line.name]
@@ -155,6 +157,6 @@ class AccountInvoice(models.Model):
 class AccountInvoiceLine(models.Model):
     _inherit = 'account.invoice.line'
 
-    project_code = fields.Many2one('purchase.account.group', string='Project Code', related='purchase_line_id.account_group_id', store=True)
-
+    account_group = fields.Many2one('purchase.account.group', string='Account Group', related='purchase_line_id.account_group_id', store=True)
+    ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account', related='purchase_id.ap_gl_account', store=True)
     export_sequence = fields.Char('Export #', readonly=True, copy=False)
