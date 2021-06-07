@@ -133,7 +133,7 @@ class PurchaseOrder(models.Model):
             user_ids = level_ids.mapped('user_id')
         return user_ids
 
-    def notify_approvers(self   ):
+    def notify_approvers(self):
         for order in self:
             # From the partners that have not approved yet, select the ones with the lower hierarchy
             # of approval levels. If there are multiple partners for a certain amount, return them all
