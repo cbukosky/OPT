@@ -43,12 +43,11 @@ class PurchaseApproval(models.Model):
         # The current user can approve if he is the approver in the approvals table or
         # if he is a proxy for a user that is in the approvals table
         proxy_model = self.env['purchase.proxy']
-        approvals_model = self.env['purchase.approval']
 
         for approval in self:
             approval.can_edit_approval = not approval.user_id or \
                             approval.user_id == self.env.user or \
-                            proxy_model.filtered([('proxy_id', '=', self.env.user)]).mapped('approver_id') in approvals_model.mapped('user_id')
+                            proxy_model.search([('proxy_id', '=', self.env.user.id)]).mapped('approver_id') in approval.mapped('user_id')
 
 
 
