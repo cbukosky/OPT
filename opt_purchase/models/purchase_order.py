@@ -146,7 +146,7 @@ class PurchaseOrder(models.Model):
                     users_by_level[amount] += level.mapped('user_id')
                 else:
                     users_by_level[amount] = level.mapped('user_id')
-            users = users_by_level[min(users_by_level.keys())]
+            users = users_by_level[min(users_by_level.keys())] if users_by_level else []
 
             # Make sure that we have not already sent the notification. The approval re-computation can be
             # done multiple times so we do not want to send the notification more than once
@@ -165,11 +165,12 @@ class PurchaseOrder(models.Model):
                                    email_values={'recipient_ids': [(4, p.id) for p in recipients]})
 
             # Notify respective proxies
-            proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', users.ids)])
-            proxy_template = self.env.ref('opt_purchase.mail_template_po_notification')
-            proxy_partners = [p.proxy_id.partner_id for p in proxy_ids]
-            if proxy_partners:
-                proxy_template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
+            if users:
+                proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', users.ids)])
+                proxy_template = self.env.ref('opt_purchase.mail_template_po_notification')
+                proxy_partners = [p.proxy_id.partner_id for p in proxy_ids]
+                if proxy_partners:
+                    proxy_template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
 
 
     def action_compute_approval_ids(self):
