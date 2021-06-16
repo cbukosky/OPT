@@ -70,15 +70,15 @@ class AccountInvoice(models.Model):
         for bill in self:  # since they want to group by bill
             bill_group = {}
             for line in bill.invoice_line_ids.filtered(lambda l: l.export_sequence == export_sequence):
-                key = (line.export_sequence,
-                       line.invoice_id.reference or line.invoice_id.number,
-                       line.invoice_id.partner_id.name,
-                       line.invoice_id.date_invoice.strftime("%m/%d/%Y"),
-                       line.invoice_id.date_due.strftime("%m/%d/%Y"),
-                       line.ap_gl_account.name,
-                       line.purchase_id.name,
-                       line.account_group.name,
-                       line.invoice_id.charge_code_id.name,
+                key = (line.export_sequence or '',
+                       line.invoice_id.reference or line.invoice_id.number or '',
+                       line.invoice_id.partner_id.name or '',
+                       line.invoice_id.date_invoice.strftime("%m/%d/%Y") or '',
+                       line.invoice_id.date_due.strftime("%m/%d/%Y") or '',
+                       line.ap_gl_account.name or '',
+                       line.purchase_id.name or '',
+                       line.account_group.name or '',
+                       line.invoice_id.charge_code_id.name or ''
                        )
                 if not bill_group.get(key):
                     line_data = [0.0, line.name]
