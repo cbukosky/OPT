@@ -196,7 +196,7 @@ class PurchaseOrder(models.Model):
             proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', order.approval_ids.mapped('user_id').ids)])  # it should exclude non-active records by default
             order.write({'proxy_ids': [(6, 0, proxy_ids.ids)]})
 
-            # send approval email to approvers a    nd proxies
+            # send approval email to approvers and proxies
             order.notify_approvers()
 
     def action_approve(self):
