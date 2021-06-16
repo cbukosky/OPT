@@ -7,6 +7,7 @@ from pytz import timezone
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+from odoo.tools.float_utils import float_compare
 
 
 class PurchaseAccountGroup(models.Model):
@@ -89,12 +90,36 @@ class PurchaseOrder(models.Model):
     show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
     # ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account')
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
+    
+    po_balance = fields.Float(string='PO Balance', compute='_compute_po_balance')
+    invoice_status = fields.Selection(selection_add=[
+        ('closed', 'Closed'),
+    ], string='Billing Status', compute='_get_invoiced', store=True, readonly=True, copy=False, default='no')
 
     @api.depends('approval_ids', 'approval_ids.approved')
     def _compute_approved(self):
         for order in self:
             order.approved = order.approval_ids and all(order.approval_ids.mapped('approved')) or False
 
+    @api.depends('amount_total', 'order_line.qty_received', 'order_line.price_unit')
+    def _compute_po_balance(self):
+        for order in self:
+            total = order.amount_total
+            received_price = 0
+            for line in order.order_line:
+                received_price += line.qty_received * line.price_unit
+            order.po_balance = total - received_price
+
+    @api.depends('state', 'order_line.qty_invoiced', 'order_line.qty_received', 'order_line.product_qty')
+    def _get_invoiced(self):
+        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+        for order in self:
+            if all(float_compare(line.product_qty, line.qty_received, precision_digits=precision) == 0 and
+                   float_compare(line.qty_received, line.qty_invoiced, precision_digits=precision) == 0 for line in order.order_line):
+                self.invoice_status = 'closed'
+            else:
+                super(PurchaseOrder, order)._get_invoiced()
+                
     def _compute_approval_count(self):
         for order in self:
             order.approval_count = len(order.approval_ids)
