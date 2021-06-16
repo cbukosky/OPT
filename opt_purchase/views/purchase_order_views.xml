@@ -11,6 +11,7 @@
       	  <field name="user_id" readonly="1"/>
       	  <field name="can_edit_approval" invisible="1"/>
       	  <field name="approved" attrs="{'readonly': [('can_edit_approval', '=', False)]}"/>
+<!--          <field name="date_approved"/>-->
       	</tree>
       </field>
     </record>
@@ -40,9 +41,12 @@
       	<xpath expr="//field[@name='order_line']//tree[1]//field[@name='product_uom']" position="after">
       	  <field name="account_group_id"/>
       	</xpath>
-      	<xpath expr="//button[@name='action_rfq_send']" position="attributes">
-      	  <attribute name="attrs">{'invisible': ['|', ('approved', '=', False)]}</attribute>
+        <xpath expr="//field[@name='date_order']" position="after">
+      	  <field name="ap_gl_account"/>
       	</xpath>
+<!--      	<xpath expr="//button[@name='action_rfq_send']" position="attributes">-->
+<!--      	  <attribute name="attrs">{'invisible': ['|', ('approved', '=', False)]}</attribute>-->
+<!--      	</xpath>-->
       	<xpath expr="//button[@name='button_approve']" position="replace">
       	  <field name="show_action_approve" invisible="1"/>
       	  <button name="action_approve" string="Approve" type="object" class="oe_highlight" attrs="{'invisible': [('show_action_approve', '=', False)]}"/>

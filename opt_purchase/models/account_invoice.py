@@ -55,7 +55,7 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def generate_export_data(self, export_sequence):
-        header = ['Export #', 'Bill #', 'PO #', 'Charge Code', 'Project Code', 'Vendor Name', 'Total']
+        header = ['Quickbook Name:', 'Export #', 'Bill No', 'Vendor', 'Date', 'Due Date', 'AP Account', 'Memo', 'Expense Account', 'Expense Customer', 'Expense Amount', 'Expense Memo']
 
         # Get the bill lines that have never been exported before. See comment below
         new_export = self.env['account.invoice.line'].search([
@@ -70,19 +70,30 @@ class AccountInvoice(models.Model):
         for bill in self:  # since they want to group by bill
             bill_group = {}
             for line in bill.invoice_line_ids.filtered(lambda l: l.export_sequence == export_sequence):
-                key = (line.export_sequence, line.invoice_id.number, line.purchase_id.name, line.invoice_id.charge_code_id.name, line.project_code.name, line.invoice_id.partner_id.name)
+                key = (line.export_sequence or '',
+                       line.invoice_id.reference or line.invoice_id.number or '',
+                       line.invoice_id.partner_id.name or '',
+                       line.invoice_id.date_invoice.strftime("%m/%d/%Y") or '',
+                       line.invoice_id.date_due.strftime("%m/%d/%Y") or '',
+                       line.ap_gl_account.name or '',
+                       line.purchase_id.name or '',
+                       line.account_group.name or '',
+                       line.invoice_id.charge_code_id.name or ''
+                       )
                 if not bill_group.get(key):
-                    bill_group[key] = 0.0
-                bill_group[key] += line.price_total  # assuming they are using the same currency here, might need to revise if they want multicurrency
-            content.extend([list(k) + [bill_group.get(k)] for k in bill_group.keys()])
+                    line_data = [0.0, line.name]
+                else:
+                    line_data[1] = 'Various Parts'  # If there are more that one line we want to have a fixed description
+
+                line_data[0] += line.price_total  # assuming they are using the same currency here, might need to revise if they want multicurrency
+                bill_group[key] = line_data
+            content.extend([[""] + list(k) + list(bill_group.get(k)) for k in bill_group.keys()])
 
         data = [header] + content
         return _csv_write_rows(data)
 
     @api.multi
     def action_export(self):
-        print('Exporting')
-
         self = self.env['account.invoice'].search([
             ('id', 'in', self.ids),
             ('state', 'not in', ('draft', 'cancel')),
@@ -146,6 +157,6 @@ class AccountInvoice(models.Model):
 class AccountInvoiceLine(models.Model):
     _inherit = 'account.invoice.line'
 
-    project_code = fields.Many2one('purchase.account.group', string='Project Code', related='purchase_line_id.account_group_id', store=True)
-
+    account_group = fields.Many2one('purchase.account.group', string='Account Group', related='purchase_line_id.account_group_id', store=True)
+    ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account', related='purchase_id.ap_gl_account', store=True)
     export_sequence = fields.Char('Export #', readonly=True, copy=False)
