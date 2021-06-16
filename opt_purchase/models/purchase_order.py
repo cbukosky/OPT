@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import time
+from datetime import datetime
+from pytz import timezone
+
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare
@@ -38,18 +42,32 @@ class PurchaseApproval(models.Model):
     user_id = fields.Many2one('res.users', ondelete='set null', string='Approver')
     approved = fields.Boolean('Approved')
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
+    # date_approved = fields.Datetime(string='Date', readonly=True)
+
+    def write(self, vals):
+        super(PurchaseApproval, self).write(vals)
+        for approval in self:
+            if approval.approved:
+                # Post approval info in the chatter
+                tz = timezone('US/Eastern')  # Eastern timezone requested by customer
+                approval.order_id.message_post(body='%s approved purchase order %s on %s EST' % (
+                                                approval.user_id.name,
+                                                approval.order_id.name,
+                                                datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
+                                                )
+
+                # Notify next set of users requesting their approval
+                approval.order_id.notify_approvers()
 
     def _compute_can_edit_approval(self):
         # The current user can approve if he is the approver in the approvals table or
         # if he is a proxy for a user that is in the approvals table
         proxy_model = self.env['purchase.proxy']
-        approvals_model = self.env['purchase.approval']
 
         for approval in self:
             approval.can_edit_approval = not approval.user_id or \
                             approval.user_id == self.env.user or \
-                            proxy_model.filtered([('proxy_id', '=', self.env.user)]).mapped('approver_id') in approvals_model.mapped('user_id')
-
+                            proxy_model.search([('proxy_id', '=', self.env.user.id)]).mapped('approver_id') in approval.mapped('user_id')
 
 
 class PurchaseProxy(models.Model):
@@ -70,9 +88,8 @@ class PurchaseOrder(models.Model):
     approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved', store=True)
     show_action_approve = fields.Boolean('Show Approve Button', readonly=True, compute='_compute_show_action_approve')
     show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
-
+    ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account')
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
-
     po_balance = fields.Float(string='PO Balance', compute='_compute_po_balance')
     invoice_status = fields.Selection(selection_add=[
         ('closed', 'Closed'),
@@ -126,6 +143,48 @@ class PurchaseOrder(models.Model):
             user_ids = level_ids.mapped('user_id')
         return user_ids
 
+    def notify_approvers(self):
+        for order in self:
+            # From the partners that have not approved yet, select the ones with the lower hierarchy
+            # of approval levels. If there are multiple partners for a certain amount, return them all
+            approved = order.approval_ids.filtered(lambda a: a.approved).mapped('user_id')
+            level_ids = self.env['purchase.level'].search([('name', '=', order.charge_code_id.project_opt),
+                                                           ('approval_min', '<=', self.amount_total),
+                                                           ('user_id', 'not in', approved.ids)])
+            users_by_level = {}
+            for level in level_ids:
+                amount = level.approval_min
+                if users_by_level.get(amount):
+                    users_by_level[amount] += level.mapped('user_id')
+                else:
+                    users_by_level[amount] = level.mapped('user_id')
+            users = users_by_level[min(users_by_level.keys())] if users_by_level else []
+
+            # Make sure that we have not already sent the notification. The approval re-computation can be
+            # done multiple times so we do not want to send the notification more than once
+            all_messages = self.env['mail.message'].search([('model', '=', 'purchase.order'),
+                                                            ('res_id', '=', order.id),
+                                                            ('subject', 'ilike', 'approval')])
+            recipients = self.env['res.partner']
+            for user in users:
+                if not all_messages.filtered(lambda m: user.mapped('partner_id') in m.partner_ids):
+                    recipients += user.mapped('partner_id')
+
+            # Send notification
+            template = self.env.ref('opt_purchase.mail_template_po_approval')
+            if recipients:
+                template.send_mail(order.id, force_send=True,
+                                   email_values={'recipient_ids': [(4, p.id) for p in recipients]})
+
+            # Notify respective proxies
+            if users:
+                proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', users.ids)])
+                proxy_template = self.env.ref('opt_purchase.mail_template_po_notification')
+                proxy_partners = [p.proxy_id.partner_id for p in proxy_ids]
+                if proxy_partners:
+                    proxy_template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
+
+
     def action_compute_approval_ids(self):
         for order in self.filtered(lambda o: o.state == 'draft'):  # recompute will only get called when the order is draft
             existing_user_ids = order.approval_ids.mapped('user_id')
@@ -144,19 +203,13 @@ class PurchaseOrder(models.Model):
                     })
                     order.approval_ids |= new_approval
 
-                # send approval email to approvers
-                template = self.env.ref('opt_purchase.mail_template_po_approval')
-                partners = diff_user_ids.mapped('partner_id')
-                if partners:
-                    template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in partners]})
+
 
             proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', order.approval_ids.mapped('user_id').ids)])  # it should exclude non-active records by default
-            new_proxy_ids = set(proxy_ids) - set(order.proxy_ids)
             order.write({'proxy_ids': [(6, 0, proxy_ids.ids)]})
-            proxy_template = self.env.ref('opt_purchase.mail_template_po_notification')
-            proxy_partners = [p.approver_id.partner_id for p in new_proxy_ids]
-            if proxy_partners:
-                proxy_template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
+
+            # send approval email to approvers and proxies
+            order.notify_approvers()
 
     def action_approve(self):
         self.ensure_one()
