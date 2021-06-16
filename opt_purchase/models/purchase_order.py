@@ -59,6 +59,21 @@ class PurchaseApproval(models.Model):
                 # Notify next set of users requesting their approval
                 approval.order_id.notify_approvers()
 
+    def write(self, vals):
+        super(PurchaseApproval, self).write(vals)
+        for approval in self:
+            if approval.approved:
+                # Post approval info in the chatter
+                tz = timezone('US/Eastern')  # Eastern timezone requested by customer
+                approval.order_id.message_post(body='%s approved purchase order %s on %s EST' % (
+                                                approval.user_id.name,
+                                                approval.order_id.name,
+                                                datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
+                                                )
+
+                # Notify next set of users requesting their approval
+                approval.order_id.notify_approvers()
+
     def _compute_can_edit_approval(self):
         # The current user can approve if he is the approver in the approvals table or
         # if he is a proxy for a user that is in the approvals table
@@ -95,7 +110,7 @@ class PurchaseOrder(models.Model):
         ('closed', 'Closed'),
     ], string='Billing Status', compute='_get_invoiced', store=True, readonly=True, copy=False, default='no')
 
-    @api.depends('approval_ids','approval_ids.approved')
+    @api.depends('approval_ids', 'approval_ids.approved')
     def _compute_approved(self):
         for order in self:
             order.approved = order.approval_ids and all(order.approval_ids.mapped('approved')) or False
@@ -202,8 +217,6 @@ class PurchaseOrder(models.Model):
                         'approved': False
                     })
                     order.approval_ids |= new_approval
-
-
 
             proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', order.approval_ids.mapped('user_id').ids)])  # it should exclude non-active records by default
             order.write({'proxy_ids': [(6, 0, proxy_ids.ids)]})
