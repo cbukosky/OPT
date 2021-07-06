@@ -42,6 +42,7 @@ class PurchaseApproval(models.Model):
     user_id = fields.Many2one('res.users', ondelete='set null', string='Approver')
     approved = fields.Boolean('Approved')
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
+    ready_approval = fields.Boolean('Ready to be approved by current user', readonly=True, compute='_compute_can_approve')
 
     def write(self, vals):
         super(PurchaseApproval, self).write(vals)
@@ -57,6 +58,34 @@ class PurchaseApproval(models.Model):
 
                 # Notify next set of users requesting their approval
                 approval.order_id.notify_approvers()
+
+    def _compute_can_approve(self):
+        # The current user is ready to approve if he or she is the first approver or his/her approver has approved
+
+        for approval in self:
+            level_ids = self.env['purchase.level'].search(
+                    [('name', '=', approval.order_id.charge_code_id.project_opt), ('approval_min', '<=', approval.order_id.amount_total)], order='approval_min asc')
+            user_ids = level_ids.mapped('user_id')
+            print(user_ids)
+            idx = 0
+            pre_users = []
+            for user in user_ids:
+                if user == approval.user_id:
+                    break
+                pre_users.append(user.id)
+                idx += 1
+
+            approval.ready_approval = False
+            if idx == 0:
+                approval.ready_approval = True
+            else:
+                approval.ready_approval = True
+                pre_approvals = self.env['purchase.approval'].search([('user_id', 'in', pre_users), ('order_id', '=', approval.order_id.id)])
+                for app in pre_approvals:
+                    if not app.approved:
+                        approval.ready_approval = False
+                        break
+
 
     def _compute_can_edit_approval(self):
         # The current user can approve if he is the approver in the approvals table or
@@ -213,6 +242,7 @@ class PurchaseOrder(models.Model):
         self.ensure_one()
         action_id = self.env.ref("opt_purchase.action_purchase_approval_tree")
         action_data = action_id.read()[0]
+        print(action_data)
         action_data.update({
             'domain': [('order_id', '=', self.id)],
             'context': {'default_order_id': self.id},

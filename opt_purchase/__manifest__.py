@@ -11,7 +11,7 @@
     "website": "http://www.odoo.com",
     "category": "Custom Development",
     "version": "0.1",
-    "depends": ["purchase"],
+    "depends": [],
     "data": [
         "security/ir.model.access.csv",
         "data/mail_template.xml",
