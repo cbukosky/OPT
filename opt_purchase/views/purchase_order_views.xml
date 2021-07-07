@@ -10,7 +10,7 @@
       	  <field name="order_id" invisible="1"/>
       	  <field name="user_id" readonly="1"/>
       	  <field name="can_edit_approval" invisible="1"/>
-          <field name="ready_approval" invisible="1"/>
+          <field name="ready_approval"/>
       	  <field name="approved" attrs="{'readonly': ['|', ('can_edit_approval', '=', False), ('ready_approval', '=', False)]}"/>
       	</tree>
       </field>
