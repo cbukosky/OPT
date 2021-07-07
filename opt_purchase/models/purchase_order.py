@@ -42,7 +42,9 @@ class PurchaseApproval(models.Model):
     user_id = fields.Many2one('res.users', ondelete='set null', string='Approver')
     approved = fields.Boolean('Approved')
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
+
     ready_approval = fields.Boolean('Ready to be approved by this approver', readonly=True, compute='_compute_can_approve')
+    # date_approved = fields.Datetime(string='Date', readonly=True)
 
     def _compute_can_approve(self):
         # The current user is ready to approve if he or she is the first approver or his/her approver has approved
@@ -114,8 +116,8 @@ class PurchaseOrder(models.Model):
     approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved', store=True)
     show_action_approve = fields.Boolean('Show Approve Button', readonly=True, compute='_compute_show_action_approve')
     show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
+    ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account')
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
-
     po_balance = fields.Float(string='PO Balance', compute='_compute_po_balance')
     invoice_status = fields.Selection(selection_add=[
         ('closed', 'Closed'),
@@ -228,7 +230,6 @@ class PurchaseOrder(models.Model):
                         'approved': False
                     })
                     order.approval_ids |= new_approval
-
 
             proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', order.approval_ids.mapped('user_id').ids)])  # it should exclude non-active records by default
             order.write({'proxy_ids': [(6, 0, proxy_ids.ids)]})

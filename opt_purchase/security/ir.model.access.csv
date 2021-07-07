@@ -5,3 +5,5 @@ access_purchase_level,access_purchase_level,opt_purchase.model_purchase_level,,1
 access_purchase_approval,access_purchase_approval,opt_purchase.model_purchase_approval,,1,1,1,1
 access_purchase_proxy,access_purchase_proxy_user,opt_purchase.model_purchase_proxy,,1,1,0,0
 access_purchase_proxy_manager,access_purchase_proxy_manager,opt_purchase.model_purchase_proxy,purchase.group_purchase_manager,1,1,1,1
+access_apgl_account_group_system,access_apgl_account_group_system,opt_purchase.model_apgl_account,base.group_system,1,1,1,1
+access_apgl_account_group_user,access_apgl_account_group_user,opt_purchase.model_apgl_account,base.group_user,1,0,0,0
