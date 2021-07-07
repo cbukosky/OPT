@@ -42,7 +42,7 @@ class PurchaseApproval(models.Model):
     user_id = fields.Many2one('res.users', ondelete='set null', string='Approver')
     approved = fields.Boolean('Approved')
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
-    ready_approval = fields.Boolean('Ready to be approved by current user', readonly=True, compute='_compute_can_approve')
+    ready_approval = fields.Boolean('Ready to be approved by this approver', readonly=True, compute='_compute_can_approve')
 
     def write(self, vals):
         super(PurchaseApproval, self).write(vals)
