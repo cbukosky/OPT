@@ -44,21 +44,6 @@ class PurchaseApproval(models.Model):
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
     ready_approval = fields.Boolean('Ready to be approved by this approver', readonly=True, compute='_compute_can_approve')
 
-    def write(self, vals):
-        super(PurchaseApproval, self).write(vals)
-        for approval in self:
-            if approval.approved:
-                # Post approval info in the chatter
-                tz = timezone('US/Eastern')  # Eastern timezone requested by customer
-                approval.order_id.message_post(body='%s approved purchase order %s on %s EST' % (
-                                                approval.user_id.name,
-                                                approval.order_id.name,
-                                                datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
-                                                )
-
-                # Notify next set of users requesting their approval
-                approval.order_id.notify_approvers()
-
     def _compute_can_approve(self):
         # The current user is ready to approve if he or she is the first approver or his/her approver has approved
 
@@ -66,7 +51,6 @@ class PurchaseApproval(models.Model):
             level_ids = self.env['purchase.level'].search(
                     [('name', '=', approval.order_id.charge_code_id.project_opt), ('approval_min', '<=', approval.order_id.amount_total)], order='approval_min asc')
             user_ids = level_ids.mapped('user_id')
-            print(user_ids)
             idx = 0
             pre_users = []
             for user in user_ids:
@@ -85,6 +69,20 @@ class PurchaseApproval(models.Model):
                     if not app.approved:
                         approval.ready_approval = False
                         break
+    def write(self, vals):
+        super(PurchaseApproval, self).write(vals)
+        for approval in self:
+            if approval.approved:
+                # Post approval info in the chatter
+                tz = timezone('US/Eastern')  # Eastern timezone requested by customer
+                approval.order_id.message_post(body='%s approved purchase order %s on %s EST' % (
+                                                approval.user_id.name,
+                                                approval.order_id.name,
+                                                datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
+                                                )
+
+                # Notify next set of users requesting their approval
+                approval.order_id.notify_approvers()
 
 
     def _compute_can_edit_approval(self):
