@@ -47,30 +47,25 @@ class PurchaseApproval(models.Model):
     # date_approved = fields.Datetime(string='Date', readonly=True)
 
     def _compute_can_approve(self):
-        # The current user is ready to approve if he or she is the first approver or his/her approver has approved
+        # The current user is ready to approve if he or she is the first approver or his/her previous approver has approved
 
         for approval in self:
+            # Get all user_ids that need to approve
             level_ids = self.env['purchase.level'].search(
                     [('name', '=', approval.order_id.charge_code_id.project_opt), ('approval_min', '<=', approval.order_id.amount_total)], order='approval_min asc')
-            user_ids = level_ids.mapped('user_id')
-            idx = 0
-            pre_users = []
-            for user in user_ids:
-                if user == approval.user_id:
-                    break
-                pre_users.append(user.id)
-                idx += 1
+            user_ids = level_ids.mapped('user_id.id')
 
-            approval.ready_approval = False
-            if idx == 0:
-                approval.ready_approval = True
-            else:
-                approval.ready_approval = True
-                pre_approvals = self.env['purchase.approval'].search([('user_id', 'in', pre_users), ('order_id', '=', approval.order_id.id)])
-                for app in pre_approvals:
-                    if not app.approved:
-                        approval.ready_approval = False
-                        break
+            # Filter out the current PO approvals that are approved
+            approvals_unapproved = self.env['purchase.approval'].search([('approved', '=', False), ('user_id', 'in', user_ids), ('order_id', '=', approval.order_id.id)])
+
+            if not approvals_unapproved:
+                approval.ready_approval = False
+                continue
+
+            # Sort them according to user_ids
+            first_approval = approvals_unapproved.sorted(key=lambda a: user_ids.index(a.user_id.id))[0]
+            approval.ready_approval = True if approval == first_approval else False
+
     def write(self, vals):
         super(PurchaseApproval, self).write(vals)
         for approval in self:
