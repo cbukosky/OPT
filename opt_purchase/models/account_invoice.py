@@ -26,6 +26,7 @@ class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
 
     charge_code_id = fields.Many2one('purchase.charge.code', string='Charge Code', compute='_compute_project_code', store=True)
+    exported = fields.Boolean(string='Exported to QB', compute='_compute_exported', readonly=True)
 
     @api.depends('origin')
     def _compute_project_code(self):
@@ -33,12 +34,20 @@ class AccountInvoice(models.Model):
             source = record.env['purchase.order'].search([('name', '=', record.origin)], limit=1)
             record.charge_code_id = source.charge_code_id
 
+    @api.depends('invoice_line_ids.export_sequence')
+    def _compute_exported(self):
+        for record in self:
+            if any(record.invoice_line_ids.mapped('export_sequence')):
+                record.exported = True
+            else:
+                record.exported = False
+
     state = fields.Selection([
         ('draft','Draft'),
         ('to_approve','Ready for Approval'),
         ('open', 'Approved'),
         ('in_payment', 'In Payment'),
-        ('paid', 'Exported to QB'),
+        ('paid', 'Paid'),
         ('cancel', 'Cancelled'),
     ], string='Status', index=True, readonly=True, default='draft',
     track_visibility='onchange', copy=False,
@@ -46,7 +55,7 @@ class AccountInvoice(models.Model):
          " * The 'Ready for Approval' status is used when user creates invoice, an invoice number is generated but the Accounting Manager still needs to approve the invoice.\n"
          " * The 'Approved' status is used when the invoice needs to paid by the customer.\n"
          " * The 'In Payment' status is used when payments have been registered for the entirety of the invoice in a journal configured to post entries at bank reconciliation only, and some of them haven't been reconciled with a bank statement line yet.\n"
-         " * The 'Exported to QB' status is set automatically when the invoice is paid. Its related journal entries may or may not be reconciled.\n"
+         " * The 'Paid' status is set automatically when the invoice is paid. Its related journal entries may or may not be reconciled.\n"
          " * The 'Cancelled' status is used when user cancel invoice.")
 
     @api.model
@@ -63,6 +72,7 @@ class AccountInvoice(models.Model):
             ('export_sequence', 'in', ('', False))
         ])
         new_export.write({'export_sequence': export_sequence})
+
         # not sure if customer wants to export already exported lines or not
         # so for now, only export new lines
 

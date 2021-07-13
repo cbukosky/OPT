@@ -195,8 +195,9 @@ class PurchaseOrder(models.Model):
 
             # Send notification
             template = self.env.ref('opt_purchase.mail_template_po_approval')
-            if recipients:
-                template.send_mail(order.id, force_send=True,
+            for recipient in recipients:
+                email_values = {'recipient': recipient.name}
+                template.sudo().with_context(email_values).send_mail(order.id, force_send=True,
                                    email_values={'recipient_ids': [(4, p.id) for p in recipients]})
 
             # Notify respective proxies
@@ -204,8 +205,9 @@ class PurchaseOrder(models.Model):
                 proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', users.ids)])
                 proxy_template = self.env.ref('opt_purchase.mail_template_po_notification')
                 proxy_partners = [p.proxy_id.partner_id for p in proxy_ids]
-                if proxy_partners:
-                    proxy_template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
+                for proxy in proxy_partners:
+                    email_values = {'proxy': proxy.name}
+                    proxy_template.sudo().with_context(email_values).send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
 
 
     def action_compute_approval_ids(self):
