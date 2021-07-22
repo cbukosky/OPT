@@ -7,6 +7,7 @@ from pytz import timezone
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+from odoo.tools.float_utils import float_compare
 
 
 class PurchaseAccountGroup(models.Model):
@@ -41,7 +42,29 @@ class PurchaseApproval(models.Model):
     user_id = fields.Many2one('res.users', ondelete='set null', string='Approver')
     approved = fields.Boolean('Approved')
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
+
+    ready_approval = fields.Boolean('Ready to be approved by this approver', readonly=True, compute='_compute_can_approve')
     # date_approved = fields.Datetime(string='Date', readonly=True)
+
+    def _compute_can_approve(self):
+        # The current user is ready to approve if he or she is the first approver or his/her previous approver has approved
+
+        for approval in self:
+            # Get all user_ids that need to approve
+            level_ids = self.env['purchase.level'].search(
+                    [('name', '=', approval.order_id.charge_code_id.project_opt), ('approval_min', '<=', approval.order_id.amount_total)], order='approval_min asc')
+            user_ids = level_ids.mapped('user_id.id')
+
+            # Filter out the current PO approvals that are approved
+            approvals_unapproved = self.env['purchase.approval'].search([('approved', '=', False), ('user_id', 'in', user_ids), ('order_id', '=', approval.order_id.id)])
+
+            if not approvals_unapproved:
+                approval.ready_approval = False
+                continue
+
+            # Sort them according to user_ids
+            first_approval = approvals_unapproved.sorted(key=lambda a: user_ids.index(a.user_id.id))[0]
+            approval.ready_approval = True if approval == first_approval else False
 
     def write(self, vals):
         super(PurchaseApproval, self).write(vals)
@@ -57,6 +80,7 @@ class PurchaseApproval(models.Model):
 
                 # Notify next set of users requesting their approval
                 approval.order_id.notify_approvers()
+
 
     def _compute_can_edit_approval(self):
         # The current user can approve if he is the approver in the approvals table or
@@ -91,7 +115,6 @@ class PurchaseOrder(models.Model):
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
     expense_class = fields.Many2one('expense.class')
 
-
     # @api.onchange('approval_ids')
     # def onchange_approved(self):
     #     for approval in self.approval_ids:
@@ -102,11 +125,36 @@ class PurchaseOrder(models.Model):
     #             #                                 self.user_id.name,
     #             #                                 self.order_id.name,
     #             #                                 datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
+    
+    po_balance = fields.Float(string='PO Balance', compute='_compute_po_balance')
+    invoice_status = fields.Selection(selection_add=[
+        ('closed', 'Closed'),
+    ], string='Billing Status', compute='_get_invoiced', store=True, readonly=True, copy=False, default='no')
+
 
     @api.depends('approval_ids', 'approval_ids.approved')
     def _compute_approved(self):
         for order in self:
             order.approved = order.approval_ids and all(order.approval_ids.mapped('approved')) or False
+
+    @api.depends('amount_total', 'order_line.qty_received', 'order_line.price_unit')
+    def _compute_po_balance(self):
+        for order in self:
+            total = order.amount_total
+            received_price = 0
+            for line in order.order_line:
+                received_price += line.qty_received * line.price_unit
+            order.po_balance = total - received_price
+
+    @api.depends('state', 'order_line.qty_invoiced', 'order_line.qty_received', 'order_line.product_qty')
+    def _get_invoiced(self):
+        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+        for order in self:
+            if all(float_compare(line.product_qty, line.qty_received, precision_digits=precision) == 0 and
+                   float_compare(line.qty_received, line.qty_invoiced, precision_digits=precision) == 0 for line in order.order_line):
+                self.invoice_status = 'closed'
+            else:
+                super(PurchaseOrder, order)._get_invoiced()
 
     def _compute_approval_count(self):
         for order in self:
@@ -194,8 +242,6 @@ class PurchaseOrder(models.Model):
                     })
                     order.approval_ids |= new_approval
 
-
-
             proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', order.approval_ids.mapped('user_id').ids)])  # it should exclude non-active records by default
             order.write({'proxy_ids': [(6, 0, proxy_ids.ids)]})
 
@@ -206,6 +252,7 @@ class PurchaseOrder(models.Model):
         self.ensure_one()
         action_id = self.env.ref("opt_purchase.action_purchase_approval_tree")
         action_data = action_id.read()[0]
+        print(action_data)
         action_data.update({
             'domain': [('order_id', '=', self.id)],
             'context': {'default_order_id': self.id},
