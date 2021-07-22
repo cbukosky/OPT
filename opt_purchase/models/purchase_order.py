@@ -89,6 +89,7 @@ class PurchaseOrder(models.Model):
     show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
     ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account')
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
+    expense_class = fields.Many2one('expense.class')
 
 
     # @api.onchange('approval_ids')

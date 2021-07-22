@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="expense_class_0" model="expense.class">
+            <field name="name">3Dent</field>
+        </record>
+        <record id="expense_class_1" model="expense.class">
+            <field name="name">Administration</field>
+        </record>
+        <record id="expense_class_2" model="expense.class">
+            <field name="name">Business Development</field>
+        </record>
+        <record id="expense_class_3" model="expense.class">
+            <field name="name">Corporate Development</field>
+        </record>
+        <record id="expense_class_4" model="expense.class">
+            <field name="name">Engineering</field>
+        </record>
+        <record id="expense_class_5" model="expense.class">
+            <field name="name">Finance</field>
+        </record>
+        <record id="expense_class_6" model="expense.class">
+            <field name="name">Global Business Development</field>
+        </record>
+        <record id="expense_class_7" model="expense.class">
+            <field name="name">Human Resources</field>
+        </record>
+        <record id="expense_class_8" model="expense.class">
+            <field name="name">Legal</field>
+        </record>
+        <record id="expense_class_9" model="expense.class">
+            <field name="name">Operations</field>
+        </record>
+        <record id="expense_class_10" model="expense.class">
+            <field name="name">Product Development</field>
+        </record>
+        <record id="expense_class_11" model="expense.class">
+            <field name="name">Program Management</field>
+        </record>
+        <record id="expense_class_12" model="expense.class">
+            <field name="name">Selling</field>
+        </record>
+        <record id="expense_class_13" model="expense.class">
+            <field name="name">Shared</field>
+        </record>
+        <record id="expense_class_14" model="expense.class">
+            <field name="name">Unallowable</field>
+        </record>
+    </data>
+</odoo>
