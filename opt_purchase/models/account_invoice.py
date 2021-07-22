@@ -64,7 +64,20 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def generate_export_data(self, export_sequence):
-        header = ['Quickbook Name:', 'Export #', 'Bill No', 'Vendor', 'Date', 'Due Date', 'AP Account', 'Memo', 'Expense Account', 'Expense Customer', 'Expense Amount', 'Expense Memo']
+        header = ['Quickbook Name:',
+                  'Export #',
+                  'Bill No',
+                  'Vendor',
+                  'Date',
+                  'Due Date',
+                  'AP Account',
+                  'Memo',
+                  'Expense Class',
+                  'Expense Account',
+                  'Expense Customer',
+                  'Expense Amount',
+                  'Expense Memo',
+                  ]
 
         # Get the bill lines that have never been exported before. See comment below
         new_export = self.env['account.invoice.line'].search([
@@ -87,6 +100,7 @@ class AccountInvoice(models.Model):
                        line.invoice_id.date_due.strftime("%m/%d/%Y") or '',
                        line.ap_gl_account.name or '',
                        line.purchase_id.name or '',
+                       line.purchase_id.expense_class.name or '',
                        line.account_group.name or '',
                        line.invoice_id.charge_code_id.name or ''
                        )

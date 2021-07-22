@@ -113,10 +113,24 @@ class PurchaseOrder(models.Model):
     show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
     ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account')
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
+    expense_class = fields.Many2one('expense.class')
+
+    # @api.onchange('approval_ids')
+    # def onchange_approved(self):
+    #     for approval in self.approval_ids:
+    #         if approval.approved and not approval.date_approved:
+    #             tz = timezone('US/Eastern')  # Eastern timezone requested by customer
+    #             approval.date_approved = fields.Datetime.now
+    #             # approval.order_id.message_post(body='%s approved purchase order %s on %s EST' % (
+    #             #                                 self.user_id.name,
+    #             #                                 self.order_id.name,
+    #             #                                 datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
+    
     po_balance = fields.Float(string='PO Balance', compute='_compute_po_balance')
     invoice_status = fields.Selection(selection_add=[
         ('closed', 'Closed'),
     ], string='Billing Status', compute='_get_invoiced', store=True, readonly=True, copy=False, default='no')
+
 
     @api.depends('approval_ids', 'approval_ids.approved')
     def _compute_approved(self):
