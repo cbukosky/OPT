@@ -177,7 +177,7 @@ class PurchaseOrder(models.Model):
 
 
     def action_compute_approval_ids(self):
-        for order in self.filtered(lambda o: o.state == 'draft'):  # recompute will only get called when the order is draft
+        for order in self.filtered(lambda o: o.state in ['draft', 'sent']):
             existing_user_ids = order.approval_ids.mapped('user_id')
             new_user_ids = order._get_approval_users()
             if new_user_ids != existing_user_ids:
