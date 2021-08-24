@@ -17,6 +17,8 @@
         "data/mail_template.xml",
         "data/ir_actions_server.xml",
         "data/ir_sequence.xml",
+        "data/expense_class_data.xml",
+        "views/expense_class_views.xml",
         "views/purchase_order_views.xml",
         "views/purchase_level_views.xml",
         "views/purchase_proxy_views.xml",

@@ -113,10 +113,24 @@ class PurchaseOrder(models.Model):
     show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
     ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account')
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
+    expense_class = fields.Many2one('expense.class')
+
+    # @api.onchange('approval_ids')
+    # def onchange_approved(self):
+    #     for approval in self.approval_ids:
+    #         if approval.approved and not approval.date_approved:
+    #             tz = timezone('US/Eastern')  # Eastern timezone requested by customer
+    #             approval.date_approved = fields.Datetime.now
+    #             # approval.order_id.message_post(body='%s approved purchase order %s on %s EST' % (
+    #             #                                 self.user_id.name,
+    #             #                                 self.order_id.name,
+    #             #                                 datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
+    
     po_balance = fields.Float(string='PO Balance', compute='_compute_po_balance')
     invoice_status = fields.Selection(selection_add=[
         ('closed', 'Closed'),
     ], string='Billing Status', compute='_get_invoiced', store=True, readonly=True, copy=False, default='no')
+
 
     @api.depends('approval_ids', 'approval_ids.approved')
     def _compute_approved(self):
@@ -195,8 +209,9 @@ class PurchaseOrder(models.Model):
 
             # Send notification
             template = self.env.ref('opt_purchase.mail_template_po_approval')
-            if recipients:
-                template.send_mail(order.id, force_send=True,
+            for recipient in recipients:
+                email_values = {'recipient': recipient.name}
+                template.sudo().with_context(email_values).send_mail(order.id, force_send=True,
                                    email_values={'recipient_ids': [(4, p.id) for p in recipients]})
 
             # Notify respective proxies
@@ -204,8 +219,9 @@ class PurchaseOrder(models.Model):
                 proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', users.ids)])
                 proxy_template = self.env.ref('opt_purchase.mail_template_po_notification')
                 proxy_partners = [p.proxy_id.partner_id for p in proxy_ids]
-                if proxy_partners:
-                    proxy_template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
+                for proxy in proxy_partners:
+                    email_values = {'proxy': proxy.name}
+                    proxy_template.sudo().with_context(email_values).send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
 
 
     def action_compute_approval_ids(self):

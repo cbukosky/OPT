@@ -46,6 +46,7 @@
       	</xpath>
         <xpath expr="//field[@name='date_order']" position="after">
       	  <field name="ap_gl_account"/>
+      	  <field name="expense_class"/>
       	</xpath>
 <!--      	<xpath expr="//button[@name='action_rfq_send']" position="attributes">-->
 <!--      	  <attribute name="attrs">{'invisible': ['|', ('approved', '=', False)]}</attribute>-->
