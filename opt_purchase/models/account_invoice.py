@@ -26,7 +26,7 @@ class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
 
     charge_code_id = fields.Many2one('purchase.charge.code', string='Charge Code', compute='_compute_project_code', store=True)
-    exported = fields.Boolean(string='Exported to QB', compute='_compute_exported', readonly=True)
+    exported = fields.Boolean(string='Exported to QB', compute='_compute_exported', readonly=True, store=True)
 
     @api.depends('origin')
     def _compute_project_code(self):
