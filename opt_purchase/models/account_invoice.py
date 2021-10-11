@@ -181,6 +181,6 @@ class AccountInvoice(models.Model):
 class AccountInvoiceLine(models.Model):
     _inherit = 'account.invoice.line'
 
-    account_group = fields.Many2one('purchase.account.group', string='Account Group', related='purchase_line_id.account_group_id', store=True)
+    account_group = fields.Many2one('purchase.account.group', string='Account Group', default=lambda rec: rec.purchase_line_id.account_group_id if rec.purchase_line_id else None)
     ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account', related='purchase_id.ap_gl_account', store=True)
     export_sequence = fields.Char('Export #', readonly=True, copy=False)

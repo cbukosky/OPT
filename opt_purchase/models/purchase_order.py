@@ -284,3 +284,18 @@ class PurchaseOrderLine(models.Model):
     _inherit = 'purchase.order.line'
 
     account_group_id = fields.Many2one('purchase.account.group', ondelete='restrict', string='Account Group', required=True)
+
+    @api.model
+    def create(self, vals):
+        """Reset approvals when a new line is added that is not shipping or tax line, and it increases the PO total."""
+        res = super(PurchaseOrderLine, self).create(vals)
+
+        lines_exclude_ship_tax = res.filtered(lambda line: not any([word in line.product_id.name.lower() for word in ['shipping', 'tax']]))
+        increases_amount = sum(res.mapped('price_subtotal')) > 0
+
+        if lines_exclude_ship_tax and increases_amount:
+            for order in res.mapped('order_id'):
+                order.write({'approval_ids': [(2, id, 0) for id in order.approval_ids.ids]})
+                order.action_compute_approval_ids()
+
+        return res
