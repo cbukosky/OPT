@@ -60,7 +60,9 @@ class AccountInvoice(models.Model):
 
     @api.model
     def _unlink_confirm_invoice_action(self):
-        self.env.ref('account.action_account_invoice_confirm').unlink()
+        action = self.env.ref('account.action_account_invoice_confirm', raise_if_not_found=False)
+        if action:
+            action.unlink()
 
     @api.multi
     def generate_export_data(self, export_sequence):
