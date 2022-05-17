@@ -22,10 +22,10 @@
     <record id="action_purchase_approval_tree" model="ir.actions.act_window">
       <field name="name">Purchase Approval</field>
       <field name="res_model">purchase.approval</field>
-      <field name="view_type">form</field>
+<!--      <field name="view_type">form</field>-->
       <field name="view_mode">tree</field>
       <field name="target">fullscreen</field>
-      <field name="nodestroy" eval="False"/>
+<!--      <field name="nodestroy" eval="False"/>-->
       <field name="context">{}</field>
     </record>
 

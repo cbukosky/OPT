@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+
 from odoo import models, api, _
 from odoo.exceptions import UserError
-
 
 class AccountInvoiceApprove(models.TransientModel):
     """
@@ -12,7 +12,7 @@ class AccountInvoiceApprove(models.TransientModel):
     _name = "account.invoice.approve"
     _description = "Approve the selected invoices"
 
-    @api.multi
+
     def invoice_approve(self):
         context = dict(self._context or {})
         active_ids = context.get('active_ids', []) or []

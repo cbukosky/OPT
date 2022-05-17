@@ -22,17 +22,11 @@ def _csv_write_rows(rows):
     return fvalue
 
 
-class AccountInvoice(models.Model):
-    _inherit = 'account.invoice'
+class AccountMove(models.Model):
+    _inherit = 'account.move'
 
-    charge_code_id = fields.Many2one('purchase.charge.code', string='Charge Code', compute='_compute_project_code', store=True)
+    charge_code_id = fields.Many2one('purchase.charge.code', string='Charge Code', related='purchase_id.charge_code_id', store=True)
     exported = fields.Boolean(string='Exported to QB', compute='_compute_exported', readonly=True, store=True)
-
-    @api.depends('origin')
-    def _compute_project_code(self):
-        for record in self:
-            source = record.env['purchase.order'].search([('name', '=', record.origin)], limit=1)
-            record.charge_code_id = source.charge_code_id
 
     @api.depends('invoice_line_ids.export_sequence')
     def _compute_exported(self):
@@ -43,14 +37,14 @@ class AccountInvoice(models.Model):
                 record.exported = False
 
     state = fields.Selection([
-        ('draft','Draft'),
-        ('to_approve','Ready for Approval'),
+        ('draft', 'Draft'),
+        ('to_approve', 'Ready for Approval'),
         ('open', 'Approved'),
         ('in_payment', 'In Payment'),
         ('paid', 'Paid'),
         ('cancel', 'Cancelled'),
     ], string='Status', index=True, readonly=True, default='draft',
-    track_visibility='onchange', copy=False,
+    tracking=True, copy=False,
     help=" * The 'Draft' status is used when a user is encoding a new and unconfirmed Invoice.\n"
          " * The 'Ready for Approval' status is used when user creates invoice, an invoice number is generated but the Accounting Manager still needs to approve the invoice.\n"
          " * The 'Approved' status is used when the invoice needs to paid by the customer.\n"
@@ -58,13 +52,12 @@ class AccountInvoice(models.Model):
          " * The 'Paid' status is set automatically when the invoice is paid. Its related journal entries may or may not be reconciled.\n"
          " * The 'Cancelled' status is used when user cancel invoice.")
 
-    @api.model
-    def _unlink_confirm_invoice_action(self):
-        action = self.env.ref('account.action_account_invoice_confirm', raise_if_not_found=False)
-        if action:
-            action.unlink()
+    # @api.model
+    # def _unlink_confirm_invoice_action(self):
+    #     action = self.env.ref('account.action_account_invoice_confirm', raise_if_not_found=False)
+    #     if action:
+    #         action.unlink()
 
-    @api.multi
     def generate_export_data(self, export_sequence):
         header = ['Quickbook Name:',
                   'Export #',
@@ -118,7 +111,7 @@ class AccountInvoice(models.Model):
         data = [header] + content
         return _csv_write_rows(data)
 
-    @api.multi
+
     def action_export(self):
         self = self.env['account.invoice'].search([
             ('id', 'in', self.ids),
@@ -154,7 +147,7 @@ class AccountInvoice(models.Model):
             'target': 'self'
         }
 
-    @api.multi
+
     def action_invoice_to_approve(self):
         # Method similar to action_invoice_open but before approval stage
         to_approve_invoices = self.filtered(lambda inv: inv.state != 'open')
@@ -164,7 +157,7 @@ class AccountInvoice(models.Model):
             raise UserError(_("Invoice must be in draft state in order to request approval of the Accounting Manager."))
         return self.write({'state': 'to_approve'})
 
-    @api.multi
+
     def action_invoice_open(self):
         # lots of duplicate calls to action_invoice_open, so we remove those already open
         to_open_invoices = self.filtered(lambda inv: inv.state != 'open')
@@ -181,10 +174,10 @@ class AccountInvoice(models.Model):
         return to_open_invoices.invoice_validate()
 
 class AccountInvoiceLine(models.Model):
-    _inherit = 'account.invoice.line'
+    _inherit = 'account.move.line'
 
     account_group = fields.Many2one('purchase.account.group', string='Account Group', compute='_compute_account_group', inverse='_inverse_account_group', store=True)
-    ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account', related='purchase_id.ap_gl_account', store=True)
+    ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account', related='purchase_line_id.order_id.ap_gl_account', store=True)
     export_sequence = fields.Char('Export #', readonly=True, copy=False)
 
     @api.depends('purchase_line_id')

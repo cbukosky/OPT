@@ -16,7 +16,7 @@
     <record id="action_purchase_charge_code_tree" model="ir.actions.act_window">
       <field name="name">Purchase Charge Code</field>
       <field name="res_model">purchase.charge.code</field>
-      <field name="view_type">form</field>
+<!--      <field name="view_type">form</field>-->
       <field name="view_mode">tree</field>
       <field name="context">{}</field>
     </record>
