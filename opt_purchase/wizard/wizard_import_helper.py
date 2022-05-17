@@ -74,13 +74,26 @@ class WizardImportHelper(models.TransientModel):
                 'file': decoded_file,
                 'file_type': 'text/csv'
             })
-        data_gen = import_id._read_file(options)
+        file_length, rows = import_id._read_file(options)
         # The first item from data generator is header
-        header = next(data_gen)
-        valid_fields = import_id.get_fields(model_name)
-        parsed_header, matches = import_id._match_headers(iter([header]), valid_fields, options)
-        recognized_fields = [(matches[i] and matches[i][0]) or False for i in range(len(parsed_header))]
-        result = import_id.sudo().do(recognized_fields, parsed_header, options)
+        if options.get('has_headers') and rows:
+            headers = rows.pop(0)
+            header_types = self._extract_headers_types(headers, rows, options)
+        else:
+            header_types, headers = {}, []
+
+        # rows_to_import = rows[1:]
+        valid_fields = import_id.get_fields_tree(model_name)
+        matches = import_id._get_mapping_suggestions(headers, header_types, valid_fields)
+
+        # parsed_header, matches = import_id._match_headers(iter([header]), valid_fields, options)
+        matches = {
+            header_key[0]: suggestion['field_path']
+            for header_key, suggestion in matches.items()
+            if suggestion
+        }
+        # recognized_fields = [(matches[i] and matches[i][0]) or False for i in range(len(parsed_header))]
+        result = import_id.sudo().execute_import(recognized_fields, parsed_header, options)
         rids = result.get('ids')
         if not rids:
             raise ValidationError(_('Cannot create/find {} records from the uploaded file.\n'
@@ -91,7 +104,7 @@ class WizardImportHelper(models.TransientModel):
                                                                result.get('messages'))))
         return rids
 
-    @api.multi
+
     def action_set_purchase_levels(self):
         """
         Wizard method to assign purchase levels (users and amounts) to a newly imported Project ID.
@@ -129,7 +142,6 @@ class WizardImportHelper(models.TransientModel):
             return {
                 'type': 'ir.actions.act_window',
                 'name': 'Set Purchase Levels',
-                'view_type': 'form',
                 'view_mode': 'form',
                 'res_model': 'wizard.import.helper',
                 'views': [(self.env.ref('opt_purchase.wizard_purchase_levels').id, 'form')],
@@ -189,7 +201,6 @@ class WizardImportHelper(models.TransientModel):
             return {
                 'type': 'ir.actions.act_window',
                 'name': 'Set Purchase Levels',
-                'view_type': 'form',
                 'view_mode': 'form',
                 'res_model': 'wizard.import.helper',
                 'views': [(self.env.ref('opt_purchase.wizard_purchase_levels').id, 'form')],
