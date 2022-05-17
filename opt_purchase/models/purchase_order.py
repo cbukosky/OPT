@@ -15,7 +15,7 @@ class PurchaseAccountGroup(models.Model):
     _description = 'Purchase Account Group'
 
     name = fields.Char('Account Group', required=True)
-    active =fields.Boolean('Active', default=True)
+    active = fields.Boolean('Active', default=True)
 
 class PurchaseChargeCode(models.Model):
     _name = 'purchase.charge.code'
@@ -241,7 +241,6 @@ class PurchaseOrder(models.Model):
 
         return action_data
 
-    @api.multi
     def button_confirm(self):
         self.action_compute_approval_ids()
         inactive_charge_codes = self.filtered(lambda o: not o.charge_code_id.active)
