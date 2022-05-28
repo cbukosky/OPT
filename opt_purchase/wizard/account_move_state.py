@@ -20,5 +20,5 @@ class AccountInvoiceApprove(models.TransientModel):
         for record in self.env['account.invoice'].browse(active_ids):
             if record.state != 'to_approve':
                 raise UserError(_("Selected invoice(s) cannot be confirmed as they are not in 'Ready for Approval' state."))
-            record.action_invoice_open()
+            record.action_post()
         return {'type': 'ir.actions.act_window_close'}

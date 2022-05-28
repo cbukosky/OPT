@@ -1,76 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <record id="mail_template_po_approval" model="mail.template">
-            <field name="name">Purchase Order Approval</field>
-            <field name="model_id" ref="purchase.model_purchase_order"/>
-            <field name="subject">PO Approval Request: ${object.name}</field>
-            <field name="body_html" type="html">
-<table border="0" cellpadding="0" cellspacing="0" style="padding-top: 16px; background-color: #F1F1F1; font-family:Verdana, Arial,sans-serif; color: #454748; width: 100%; border-collapse:separate;"><tr><td align="center">
-<table border="0" cellpadding="0" cellspacing="0" width="590" style="padding: 16px; background-color: white; color: #454748; border-collapse:separate;">
-<tbody>
-    <tr>
-        <td align="center" style="min-width: 590px;">
-            <table border="0" cellpadding="0" cellspacing="0" width="590" style="min-width: 590px; background-color: white; padding: 0px 8px 0px 8px; border-collapse:separate;">
-                <tr><td valign="top" style="font-size: 13px;">
-                    <div style="margin: 0px; padding: 0px;">
-                        Hi ${ctx.get('recipient') or 'Approver'},
-                        <br></br>
-                        <br></br>
-                        You are invited to approve <strong>${object.name}</strong>.
-                        <p style="margin-top: 24px; margin-bottom: 16px;">
-                            <a href="/mail/view?model=purchase.order&amp;res_id=${object.id}" style="background-color:#875A7B; padding: 10px; text-decoration: none; color: #fff; border-radius: 5px;">
-                                    View Purchase Order
-                            </a>
-                        </p>
-                    </div>
-                </td></tr>
+    <record id="mail_template_po_approval" model="mail.template">
+        <field name="name">Purchase Order Approval</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="subject">PO Approval Request: {{ object.name }}</field>
+        <field name="body_html" type="html">
+            <table border="0" cellpadding="0" cellspacing="0" style="padding-top: 16px; background-color: #F1F1F1; font-family:Verdana, Arial,sans-serif; color: #454748; width: 100%; border-collapse:separate;">
+                <tr>
+                    <td align="center">
+                    <table border="0" cellpadding="0" cellspacing="0" width="590" style="padding: 16px; background-color: white; color: #454748; border-collapse:separate;">
+                    <tbody>
+                    <tr>
+                    <td align="center" style="min-width: 590px;">
+                        <table border="0" cellpadding="0" cellspacing="0" width="590" style="min-width: 590px; background-color: white; padding: 0px 8px 0px 8px; border-collapse:separate;">
+                            <tr>
+                                <td valign="top" style="font-size: 13px;">
+                                    <div style="margin: 0px; padding: 0px;">
+                                        Hi <t t-out="ctx.get('recipient', 'recipient')">Approver</t>,
+                                        <br></br>
+                                        <br></br>
+                                        You are invited to approve <strong t-out="object.name or ''"></strong>.
+                                        <p style="margin-top: 24px; margin-bottom: 16px;">
+                                            <a t-attf-href="/mail/view?model=purchase.order&amp;res_id={{object.id}}" style="background-color:#875A7B; padding: 10px; text-decoration: none; color: #fff; border-radius: 5px;">
+                                                View Purchase Order
+                                            </a>
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    </tr>
+                    </tbody>
+                    </table>
+                    </td>
+                </tr>
             </table>
-        </td>
-    </tr>
-</tbody>
-</table>
-</td></tr>
-</table>
-            </field>
-            <field name="auto_delete" eval="True"/>
-        </record>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
 
 	<record id="mail_template_po_notification" model="mail.template">
-            <field name="name">Purchase Order Proxy Notification</field>
-            <field name="model_id" ref="purchase.model_purchase_order"/>
-            <field name="subject">PO Proxy Notification: ${object.name}</field>
-            <field name="body_html" type="html">
-<table border="0" cellpadding="0" cellspacing="0" style="padding-top: 16px; background-color: #F1F1F1; font-family:Verdana, Arial,sans-serif; color: #454748; width: 100%; border-collapse:separate;"><tr><td align="center">
-<table border="0" cellpadding="0" cellspacing="0" width="590" style="padding: 16px; background-color: white; color: #454748; border-collapse:separate;">
-<tbody>
-    <tr>
-        <td align="center" style="min-width: 590px;">
-            <table border="0" cellpadding="0" cellspacing="0" width="590" style="min-width: 590px; background-color: white; padding: 0px 8px 0px 8px; border-collapse:separate;">
-              <tr><td valign="top" style="font-size: 13px;">
-                    <div style="margin: 0px; padding: 0px;">
-                        Hi ${ctx.get('proxy') or 'Proxy'},
-                        <br></br>
-                        <br></br>
-                        You are invited to approve <strong>${object.name}</strong>.
-                        You are invited to follow <strong>${object.name}</strong>.
-                        <p style="margin-top: 24px; margin-bottom: 16px;">
-                            <a href="/mail/view?model=purchase.order&amp;res_id=${object.id}" style="background-color:#875A7B; padding: 10px; text-decoration: none; color: #fff; border-radius: 5px;">
-                                    View Purchase Order
-                            </a>
-                        </p>
-                    </div>
-                </td></tr>
+        <field name="name">Purchase Order Proxy Notification</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="subject">PO Proxy Notification: {{ object.name }}</field>
+        <field name="body_html" type="html">
+            <table border="0" cellpadding="0" cellspacing="0" style="padding-top: 16px; background-color: #F1F1F1; font-family:Verdana, Arial,sans-serif; color: #454748; width: 100%; border-collapse:separate;"><tr><td align="center">
+            <table border="0" cellpadding="0" cellspacing="0" width="590" style="padding: 16px; background-color: white; color: #454748; border-collapse:separate;">
+            <tbody>
+                <tr>
+                    <td align="center" style="min-width: 590px;">
+                        <table border="0" cellpadding="0" cellspacing="0" width="590" style="min-width: 590px; background-color: white; padding: 0px 8px 0px 8px; border-collapse:separate;">
+                          <tr><td valign="top" style="font-size: 13px;">
+                                <div style="margin: 0px; padding: 0px;">
+                                    Hi <t t-out="ctx.get('proxy', 'proxy')">Proxy</t>,
+                                    <br></br>
+                                    <br></br>
+                                    You are invited to approve <strong t-out="object.name or ''"></strong>.
+                                    <p style="margin-top: 24px; margin-bottom: 16px;">
+                                        <a t-attf-href="/mail/view?model=purchase.order&amp;res_id={{object.id}}" style="background-color:#875A7B; padding: 10px; text-decoration: none; color: #fff; border-radius: 5px;">
+                                            View Purchase Order
+                                        </a>
+                                    </p>
+                                </div>
+                            </td></tr>
+                        </table>
+                    </td>
+                </tr>
+            </tbody>
             </table>
-        </td>
-    </tr>
-</tbody>
-</table>
-</td></tr>
-</table>
-            </field>
-            <field name="auto_delete" eval="True"/>
-        </record>
+            </td></tr>
+            </table>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
 
     </data>
 </odoo>
