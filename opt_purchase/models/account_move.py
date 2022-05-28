@@ -25,9 +25,6 @@ def _csv_write_rows(rows):
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    charge_code_id = fields.Many2one('purchase.charge.code', string='Charge Code', related='purchase_id.charge_code_id', store=True)
-    exported = fields.Boolean(string='Exported to QB', compute='_compute_exported', readonly=True, store=True)
-
     @api.depends('invoice_line_ids.export_sequence')
     def _compute_exported(self):
         for record in self:
@@ -35,22 +32,28 @@ class AccountMove(models.Model):
                 record.exported = True
             else:
                 record.exported = False
+    def _get_states(self):
+        return [
+                ('draft', 'Draft'),
+                ('to_approve', 'Ready for Approval'),
+                ('posted', 'Approved'),
+                ('in_payment', 'In Payment'),
+                ('paid', 'Paid'),
+                ('cancel', 'Cancelled')
+        ]
 
-    state = fields.Selection([
-        ('draft', 'Draft'),
-        ('to_approve', 'Ready for Approval'),
-        ('open', 'Approved'),
-        ('in_payment', 'In Payment'),
-        ('paid', 'Paid'),
-        ('cancel', 'Cancelled'),
-    ], string='Status', index=True, readonly=True, default='draft',
+
+    charge_code_id = fields.Many2one('purchase.charge.code', string='Charge Code', related='purchase_id.charge_code_id', store=True)
+    exported = fields.Boolean(string='Exported to QB', compute='_compute_exported', readonly=True, store=True)
+    state = fields.Selection(_get_states, string='Status', index=True, readonly=True, default='draft',
     tracking=True, copy=False,
     help=" * The 'Draft' status is used when a user is encoding a new and unconfirmed Invoice.\n"
          " * The 'Ready for Approval' status is used when user creates invoice, an invoice number is generated but the Accounting Manager still needs to approve the invoice.\n"
          " * The 'Approved' status is used when the invoice needs to paid by the customer.\n"
          " * The 'In Payment' status is used when payments have been registered for the entirety of the invoice in a journal configured to post entries at bank reconciliation only, and some of them haven't been reconciled with a bank statement line yet.\n"
          " * The 'Paid' status is set automatically when the invoice is paid. Its related journal entries may or may not be reconciled.\n"
-         " * The 'Cancelled' status is used when user cancel invoice.")
+         " * The 'Cancelled' status is used when user cancel invoice.",
+    ondelete=None)
 
     # @api.model
     # def _unlink_confirm_invoice_action(self):
@@ -113,6 +116,12 @@ class AccountMove(models.Model):
 
 
     def action_export(self):
+
+        if self.filtered(lambda bill: bill.move_type != 'in_invoice'):
+            raise ValidationError('You can only export Vendor Bills.')
+        if self.filtered(lambda bill: bill.state != 'posted'):
+            raise ValidationError('The bill must in the approved state in order to export it.')
+
         self = self.env['account.invoice'].search([
             ('id', 'in', self.ids),
             ('state', 'not in', ('draft', 'cancel')),
@@ -149,29 +158,17 @@ class AccountMove(models.Model):
 
 
     def action_invoice_to_approve(self):
-        # Method similar to action_invoice_open but before approval stage
-        to_approve_invoices = self.filtered(lambda inv: inv.state != 'open')
-        if to_approve_invoices.filtered(lambda inv: not inv.partner_id):
-            raise UserError(_("The field Vendor is required, please complete it to request approval of the Vendor Bill."))
-        if to_approve_invoices.filtered(lambda inv: inv.state != 'draft'):
+        # Method similar to action_post but before approval stage
+        if self.filtered(lambda inv: inv.move_type == 'in_invoice' and inv.state != 'draft'):
             raise UserError(_("Invoice must be in draft state in order to request approval of the Accounting Manager."))
         return self.write({'state': 'to_approve'})
 
 
-    def action_invoice_open(self):
-        # lots of duplicate calls to action_invoice_open, so we remove those already open
-        to_open_invoices = self.filtered(lambda inv: inv.state != 'open')
-        if to_open_invoices.filtered(lambda inv: not inv.partner_id):
-            raise UserError(_("The field Vendor is required, please complete it to validate the Vendor Bill."))
-        if to_open_invoices.filtered(lambda inv: inv.state != 'to_approve'):
+    def action_post(self):
+        to_post_invoices = self.filtered(lambda inv: inv.move_type == 'in_invoice' and inv.state != 'posted')
+        if to_post_invoices.filtered(lambda inv: inv.state != 'to_approve'):
             raise UserError(_("Invoice must be in Ready to Approve state in order to validate it."))
-        if to_open_invoices.filtered(lambda inv: float_compare(inv.amount_total, 0.0, precision_rounding=inv.currency_id.rounding) == -1):
-            raise UserError(_("You cannot validate an invoice with a negative total amount. You should create a credit note instead."))
-        if to_open_invoices.filtered(lambda inv: not inv.account_id):
-            raise UserError(_('No account was found to create the invoice, be sure you have installed a chart of account.'))
-        to_open_invoices.action_date_assign()
-        to_open_invoices.action_move_create()
-        return to_open_invoices.invoice_validate()
+        return super(AccountMove, self).action_post()
 
 class AccountInvoiceLine(models.Model):
     _inherit = 'account.move.line'

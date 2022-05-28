@@ -23,9 +23,9 @@
         "views/purchase_level_views.xml",
         "views/purchase_proxy_views.xml",
         "views/purchase_charge_code_views.xml",
-        "views/account_invoice_views.xml",
+        "views/account_move_views.xml",
         "wizard/wizard_import_helper.xml",
         # "wizard/wizard_purchase_levels.xml",
-        "wizard/account_invoice_state_views.xml",
+        "wizard/account_move_state_views.xml",
     ]
 }

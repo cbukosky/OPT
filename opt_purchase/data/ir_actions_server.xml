@@ -13,10 +13,6 @@
       <field name="binding_type">action</field>
       <field name="type">ir.actions.server</field>
       <field name="code"><![CDATA[
-if records.filtered(lambda bill: bill.type != 'in_invoice'):
-    raise Warning('You can only export Vendor Bills.')
-if records.filtered(lambda bill: bill.state != 'open'):
-    raise Warning('The bill must in the approved state in order to export it.')
 action = records.action_export()
 ]]></field>
     </record>
