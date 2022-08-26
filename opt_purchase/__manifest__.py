@@ -7,10 +7,10 @@
         - Add calculated field PO balance
     """,
     "author": "Odoo Inc",
-    "license": "OEEL-1",
+    "license": "OPL-1",
     "website": "http://www.odoo.com",
     "category": "Custom Development",
-    "version": "0.1",
+    "version": "1.1",
     "depends": ['account', 'purchase'],
     "data": [
         "security/ir.model.access.csv",
