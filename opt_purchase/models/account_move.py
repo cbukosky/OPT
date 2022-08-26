@@ -2,13 +2,12 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
-from odoo.tools import pycompat
-import io, base64, random, string
+import io, base64
 
 from odoo.exceptions import AccessError, UserError, RedirectWarning, ValidationError, Warning
 from odoo.tools import email_re, email_split, email_escape_char, float_is_zero, float_compare, \
     pycompat, date_utils
+
 
 def _csv_write_rows(rows):
     f = io.BytesIO()
@@ -32,6 +31,7 @@ class AccountMove(models.Model):
                 record.exported = True
             else:
                 record.exported = False
+
     def _get_states(self):
         return [
                 ('draft', 'Draft'),
@@ -41,7 +41,6 @@ class AccountMove(models.Model):
                 ('paid', 'Paid'),
                 ('cancel', 'Cancelled')
         ]
-
 
     charge_code_id = fields.Many2one('purchase.charge.code', string='Charge Code', related='purchase_id.charge_code_id', store=True)
     exported = fields.Boolean(string='Exported to QB', compute='_compute_exported', readonly=True, store=True)
@@ -78,8 +77,8 @@ class AccountMove(models.Model):
                   ]
 
         # Get the bill lines that have never been exported before. See comment below
-        new_export = self.env['account.invoice.line'].search([
-            ('invoice_id', 'in', self.ids),
+        new_export = self.env['account.move.line'].search([
+            ('move_id', 'in', self.ids),
             ('export_sequence', 'in', ('', False))
         ])
         new_export.write({'export_sequence': export_sequence})
@@ -92,15 +91,15 @@ class AccountMove(models.Model):
             bill_group = {}
             for line in bill.invoice_line_ids.filtered(lambda l: l.export_sequence == export_sequence):
                 key = (line.export_sequence or '',
-                       line.invoice_id.reference or line.invoice_id.number or '',
-                       line.invoice_id.partner_id.name or '',
-                       line.invoice_id.date_invoice.strftime("%m/%d/%Y") or '',
-                       line.invoice_id.date_due.strftime("%m/%d/%Y") or '',
-                       line.ap_gl_account.name or '',
+                       line.move_id.ref or line.move_id.name or '',
+                       line.move_id.partner_id.name or '',
+                       line.move_id.invoice_date.strftime("%m/%d/%Y") or '',
+                       line.move_id.invoice_date_due.strftime("%m/%d/%Y") or '',
+                       line.ap_gl_accounapt.name or '',
                        line.purchase_id.name or '',
                        line.purchase_id.expense_class.name or '',
                        line.account_group.name or '',
-                       line.invoice_id.charge_code_id.name or ''
+                       line.move_id.charge_code_id.name or ''
                        )
                 if not bill_group.get(key):
                     line_data = [0.0, line.name]
@@ -114,15 +113,13 @@ class AccountMove(models.Model):
         data = [header] + content
         return _csv_write_rows(data)
 
-
     def action_export(self):
-
         if self.filtered(lambda bill: bill.move_type != 'in_invoice'):
             raise ValidationError('You can only export Vendor Bills.')
         if self.filtered(lambda bill: bill.state != 'posted'):
             raise ValidationError('The bill must in the approved state in order to export it.')
 
-        self = self.env['account.invoice'].search([
+        self = self.env['account.move'].search([
             ('id', 'in', self.ids),
             ('state', 'not in', ('draft', 'cancel')),
             ('type', '=', 'in_invoice'),
@@ -141,9 +138,8 @@ class AccountMove(models.Model):
 
         attachment_vals = {
             'name': attachment_name,
-            'datas': base64.encodestring(data),
-            'datas_fname': attachment_name,
-            'res_model': 'account.invoice',
+            'datas': base64.encodebytes(data),
+            'res_model': 'account.move',
         }
 
         Attachment.search([('name', '=', attachment_name)]).unlink()
@@ -156,13 +152,11 @@ class AccountMove(models.Model):
             'target': 'self'
         }
 
-
     def action_invoice_to_approve(self):
         # Method similar to action_post but before approval stage
         if self.filtered(lambda inv: inv.move_type == 'in_invoice' and inv.state != 'draft'):
             raise UserError(_("Invoice must be in draft state in order to request approval of the Accounting Manager."))
         return self.write({'state': 'to_approve'})
-
 
     def action_post(self):
         to_post_invoices = self.filtered(lambda inv: inv.move_type == 'in_invoice' and inv.state != 'posted')
@@ -170,7 +164,8 @@ class AccountMove(models.Model):
             raise UserError(_("Invoice must be in Ready to Approve state in order to validate it."))
         return super(AccountMove, self).action_post()
 
-class AccountInvoiceLine(models.Model):
+
+class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
     account_group = fields.Many2one('purchase.account.group', string='Account Group', compute='_compute_account_group', inverse='_inverse_account_group', store=True)

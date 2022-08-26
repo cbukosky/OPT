@@ -14,7 +14,7 @@ class WizardImportHelper(models.TransientModel):
 
     name = fields.Selection([('purchase.charge.code', 'Purchase Charge Code'), ('purchase.account.group', 'Account Group')], string='Model')
     file = fields.Binary(string='Import File')
-    project_id = fields.Char()
+    project_id = fields.Char(string='Project ID')
 
     currency_id = fields.Many2one(comodel_name='res.currency', default=lambda self: self._get_currency())
 
@@ -43,7 +43,6 @@ class WizardImportHelper(models.TransientModel):
         user = self.env['res.users'].browse(self.env.context['uid'])
         return user.company_id.currency_id
 
-
     # A helper function to set the criteria of what is considered a duplicate
     def _get_existing_record_filtering_domain(self, record):
         if self.name == 'purchase.charge.code':
@@ -51,7 +50,6 @@ class WizardImportHelper(models.TransientModel):
         elif self.name == 'purchase.account.group':
             return lambda r: r.id != record.id and r.name == record.name
         return lambda r: r
-
 
     def do_import(self, model_name, decoded_file, options):
         import_id = self.env['base_import.import'].create({
@@ -81,7 +79,6 @@ class WizardImportHelper(models.TransientModel):
                                     'Make sure the headers of your file match the technical or functional field names on model {}.\n\n'
                                     'Input Header: {}\n'
                                     'Mapped Header: {}'.format(model_name, model_name, headers, recognized_fields)))
-
 
     def action_set_purchase_levels(self):
         """
@@ -153,7 +150,6 @@ class WizardImportHelper(models.TransientModel):
                 if existing_record_id:
                     to_unlink |= record
                     record = existing_record_id[0]
-
 
                 # If a new Project ID is found during import, the process will interrupt and a new dialog will
                 # open that will require the user to select approving users and approval values for the new Project ID

@@ -46,6 +46,7 @@
             <button name="button_confirm" type="object" class="oe_highlight" string="Confirm Order" id="draft_confirm" states="draft" attrs="{'invisible': ['|', ('show_action_confirm', '=', False)]}"/>
       	</xpath>
         <xpath expr="//button[@id='bid_confirm']" position="replace">
+
             <button name="button_confirm" type="object" class="oe_highlight" string="Confirm Order" id="bid_confirm" states="sent" attrs="{'invisible': ['|', ('show_action_confirm', '=', False)]}"/>
       	</xpath>
       </field>
@@ -54,7 +55,7 @@
     <record id="purchase_order_tree_inherit_po_balance" model="ir.ui.view">
         <field name="name">purchase.order.tree.inherit.po.balance</field>
         <field name="model">purchase.order</field>
-        <field name="inherit_id" ref="purchase.purchase_order_tree"/>
+        <field name="inherit_id" ref="purchase.purchase_order_view_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='user_id']" position="after">
                 <field name="po_balance"/>

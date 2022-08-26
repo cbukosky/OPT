@@ -23,7 +23,6 @@ class PurchaseOrder(models.Model):
         ('closed', 'Closed'),
     ], string='Billing Status', compute='_get_invoiced', store=True, readonly=True, copy=False, default='no')
 
-
     @api.depends('approval_ids', 'approval_ids.approved')
     def _compute_approved(self):
         for order in self:
@@ -38,7 +37,7 @@ class PurchaseOrder(models.Model):
                 received_price += line.qty_received * line.price_unit
             order.po_balance = total - received_price
 
-    @api.depends('state', 'order_line.qty_invoiced', 'order_line.qty_received', 'order_line.product_qty')
+    @api.depends('state', 'order_line.qty_to_invoice')
     def _get_invoiced(self):
         precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
         for order in self:
@@ -114,7 +113,6 @@ class PurchaseOrder(models.Model):
                 for proxy in proxy_partners:
                     email_values = {'proxy': proxy.name}
                     proxy_template.sudo().with_context(email_values).send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
-
 
     def action_compute_approval_ids(self):
         for order in self.filtered(lambda o: o.state in ['draft', 'sent']):

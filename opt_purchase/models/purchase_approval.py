@@ -6,12 +6,14 @@ from pytz import timezone
 
 from odoo import api, fields, models, _
 
+
 class PurchaseAccountGroup(models.Model):
     _name = 'purchase.account.group'
     _description = 'Purchase Account Group'
 
     name = fields.Char('Account Group', required=True)
     active = fields.Boolean('Active', default=True)
+
 
 class PurchaseChargeCode(models.Model):
     _name = 'purchase.charge.code'
@@ -21,6 +23,7 @@ class PurchaseChargeCode(models.Model):
     project_opt = fields.Char('Project ID')
     active = fields.Boolean('Active')
 
+
 class PurchaseLevel(models.Model):
     _name = 'purchase.level'
     _description = 'purchase.level'
@@ -29,6 +32,7 @@ class PurchaseLevel(models.Model):
     user_id = fields.Many2one('res.users', ondelete='set null', string='User')
     approval_min = fields.Float('Approval Min')
 
+
 class PurchaseProxy(models.Model):
     _name = 'purchase.proxy'
     _description = 'Purchase Proxy'
@@ -36,6 +40,7 @@ class PurchaseProxy(models.Model):
     approver_id = fields.Many2one('res.users', ondelete='set null', string='Approver')
     proxy_id = fields.Many2one('res.users', delete='set null', string='Proxy')
     active = fields.Boolean('Active')
+
 
 class PurchaseApproval(models.Model):
     _name = 'purchase.approval'
@@ -50,7 +55,7 @@ class PurchaseApproval(models.Model):
     # date_approved = fields.Datetime(string='Date', readonly=True)
 
     def _compute_can_approve(self):
-        # The current user is ready to approve if he or she is the first approver or his/her previous approver has approved
+        # Current user is ready to approve if he or she is the first approver or his/her previous approver has approved
 
         for approval in self:
             # Get all user_ids that need to approve
@@ -84,7 +89,6 @@ class PurchaseApproval(models.Model):
                 # Notify next set of users requesting their approval
                 approval.order_id.notify_approvers()
 
-
     def _compute_can_edit_approval(self):
         # The current user can approve if he is the approver in the approvals table or
         # if he is a proxy for a user that is in the approvals table
@@ -94,4 +98,3 @@ class PurchaseApproval(models.Model):
             approval.can_edit_approval = not approval.user_id or \
                                          approval.user_id == self.env.user or \
                                          proxy_model.search([('proxy_id', '=', self.env.user.id)]).mapped('approver_id') in approval.mapped('user_id')
-
