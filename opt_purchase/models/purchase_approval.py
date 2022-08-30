@@ -38,7 +38,7 @@ class PurchaseProxy(models.Model):
     _description = 'Purchase Proxy'
 
     approver_id = fields.Many2one('res.users', ondelete='set null', string='Approver')
-    proxy_id = fields.Many2one('res.users', delete='set null', string='Proxy')
+    proxy_id = fields.Many2one('res.users', ondelete='set null', string='Proxy')
     active = fields.Boolean('Active')
 
 
