@@ -22,14 +22,14 @@
       <field name="inherit_id" ref="purchase.purchase_order_form" />
       <field name="arch" type="xml">
       	<xpath expr="//field[@name='currency_id']" position="after">
-      	  <field name="charge_code_id"/>
+      	  <field name="charge_code_id" required="1"/>
       	  <field name="approval_ids"/>
       	  <field name="approval_count"/>
       	  <field name="proxy_ids"/>
       	  <field name="approved"/>
       	</xpath>
       	<xpath expr="//field[@name='order_line']//tree[1]//field[@name='product_uom']" position="after">
-      	  <field name="account_group_id"/>
+      	  <field name="account_group_id" required="1"/>
       	</xpath>
         <xpath expr="//field[@name='date_order']" position="after">
       	  <field name="ap_gl_account"/>
