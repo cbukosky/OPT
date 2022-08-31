@@ -9,7 +9,7 @@ from odoo.tools.float_utils import float_compare
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
 
-    charge_code_id = fields.Many2one('purchase.charge.code', ondelete='restrict', string='Charge Code', required=True)
+    charge_code_id = fields.Many2one('purchase.charge.code', ondelete='restrict', string='Charge Code')
     approval_ids = fields.One2many('purchase.approval', 'order_id', string='Approvals', store=True, readonly=True, copy=False)  # use a wizard to let user update
     approval_count = fields.Integer('Approval Count', readonly=True, compute='_compute_approval_count')
     approved = fields.Boolean('Approved', readonly=True, compute='_compute_approved', store=True)
@@ -162,4 +162,4 @@ class PurchaseOrder(models.Model):
 class PurchaseOrderLine(models.Model):
     _inherit = 'purchase.order.line'
 
-    account_group_id = fields.Many2one('purchase.account.group', ondelete='restrict', string='Account Group', required=True)
+    account_group_id = fields.Many2one('purchase.account.group', ondelete='restrict', string='Account Group')
