@@ -10,8 +10,11 @@
       	  <field name="order_id" invisible="1"/>
       	  <field name="user_id" readonly="1"/>
       	  <field name="can_edit_approval" invisible="1"/>
-      	  <field name="approved" attrs="{'readonly': [('can_edit_approval', '=', False)]}"/>
+          <field name="ready_approval"/>
+      	  <field name="approved" attrs="{'readonly': ['|', ('can_edit_approval', '=', False), ('ready_approval', '=', False)]}"/>
+
 <!--          <field name="date_approved"/>-->
+
       	</tree>
       </field>
     </record>
@@ -43,6 +46,7 @@
       	</xpath>
         <xpath expr="//field[@name='date_order']" position="after">
       	  <field name="ap_gl_account"/>
+      	  <field name="expense_class"/>
       	</xpath>
 <!--      	<xpath expr="//button[@name='action_rfq_send']" position="attributes">-->
 <!--      	  <attribute name="attrs">{'invisible': ['|', ('approved', '=', False)]}</attribute>-->
@@ -50,8 +54,8 @@
       	<xpath expr="//button[@name='button_approve']" position="replace">
       	  <field name="show_action_approve" invisible="1"/>
       	  <button name="action_approve" string="Approve" type="object" class="oe_highlight" attrs="{'invisible': [('show_action_approve', '=', False)]}"/>
-      	  <button name="action_compute_approval_ids" string="Generate Approvals" type="object" class="oe_highlight" attrs="{'invisible': ['|', ('state', 'not in', ('draft')), ('approval_count', '!=', 0)]}"/>
-      	  <button name="action_compute_approval_ids" string="Update Approvals" type="object" class="" attrs="{'invisible': ['|', ('state', 'not in', ('draft')), ('approval_count', '=', 0)]}"/>
+      	  <button name="action_compute_approval_ids" string="Generate Approvals" type="object" class="oe_highlight" attrs="{'invisible': ['|', ('state', 'not in', ('draft', 'sent')), ('approval_count', '!=', 0)]}"/>
+      	  <button name="action_compute_approval_ids" string="Update Approvals" type="object" class="" attrs="{'invisible': ['|', ('state', 'not in', ('draft','sent')), ('approval_count', '=', 0)]}"/>
       	</xpath>
       	<xpath expr="//button[@id='draft_confirm']" position="replace">
             <field name="show_action_confirm" invisible="1"/>

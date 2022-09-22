@@ -26,6 +26,7 @@ class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
 
     charge_code_id = fields.Many2one('purchase.charge.code', string='Charge Code', compute='_compute_project_code', store=True)
+    exported = fields.Boolean(string='Exported to QB', compute='_compute_exported', readonly=True, store=True)
 
     @api.depends('origin')
     def _compute_project_code(self):
@@ -33,12 +34,20 @@ class AccountInvoice(models.Model):
             source = record.env['purchase.order'].search([('name', '=', record.origin)], limit=1)
             record.charge_code_id = source.charge_code_id
 
+    @api.depends('invoice_line_ids.export_sequence')
+    def _compute_exported(self):
+        for record in self:
+            if any(record.invoice_line_ids.mapped('export_sequence')):
+                record.exported = True
+            else:
+                record.exported = False
+
     state = fields.Selection([
         ('draft','Draft'),
         ('to_approve','Ready for Approval'),
         ('open', 'Approved'),
         ('in_payment', 'In Payment'),
-        ('paid', 'Exported to QB'),
+        ('paid', 'Paid'),
         ('cancel', 'Cancelled'),
     ], string='Status', index=True, readonly=True, default='draft',
     track_visibility='onchange', copy=False,
@@ -46,16 +55,31 @@ class AccountInvoice(models.Model):
          " * The 'Ready for Approval' status is used when user creates invoice, an invoice number is generated but the Accounting Manager still needs to approve the invoice.\n"
          " * The 'Approved' status is used when the invoice needs to paid by the customer.\n"
          " * The 'In Payment' status is used when payments have been registered for the entirety of the invoice in a journal configured to post entries at bank reconciliation only, and some of them haven't been reconciled with a bank statement line yet.\n"
-         " * The 'Exported to QB' status is set automatically when the invoice is paid. Its related journal entries may or may not be reconciled.\n"
+         " * The 'Paid' status is set automatically when the invoice is paid. Its related journal entries may or may not be reconciled.\n"
          " * The 'Cancelled' status is used when user cancel invoice.")
 
     @api.model
     def _unlink_confirm_invoice_action(self):
-        self.env.ref('account.action_account_invoice_confirm').unlink()
+        action = self.env.ref('account.action_account_invoice_confirm', raise_if_not_found=False)
+        if action:
+            action.unlink()
 
     @api.multi
     def generate_export_data(self, export_sequence):
-        header = ['Quickbook Name:', 'Export #', 'Bill No', 'Vendor', 'Date', 'Due Date', 'AP Account', 'Memo', 'Expense Account', 'Expense Customer', 'Expense Amount', 'Expense Memo']
+        header = ['Quickbook Name:',
+                  'Export #',
+                  'Bill No',
+                  'Vendor',
+                  'Date',
+                  'Due Date',
+                  'AP Account',
+                  'Memo',
+                  'Expense Class',
+                  'Expense Account',
+                  'Expense Customer',
+                  'Expense Amount',
+                  'Expense Memo',
+                  ]
 
         # Get the bill lines that have never been exported before. See comment below
         new_export = self.env['account.invoice.line'].search([
@@ -63,6 +87,7 @@ class AccountInvoice(models.Model):
             ('export_sequence', 'in', ('', False))
         ])
         new_export.write({'export_sequence': export_sequence})
+
         # not sure if customer wants to export already exported lines or not
         # so for now, only export new lines
 
@@ -77,6 +102,7 @@ class AccountInvoice(models.Model):
                        line.invoice_id.date_due.strftime("%m/%d/%Y") or '',
                        line.ap_gl_account.name or '',
                        line.purchase_id.name or '',
+                       line.purchase_id.expense_class.name or '',
                        line.account_group.name or '',
                        line.invoice_id.charge_code_id.name or ''
                        )
@@ -157,6 +183,14 @@ class AccountInvoice(models.Model):
 class AccountInvoiceLine(models.Model):
     _inherit = 'account.invoice.line'
 
-    account_group = fields.Many2one('purchase.account.group', string='Account Group', related='purchase_line_id.account_group_id', store=True)
+    account_group = fields.Many2one('purchase.account.group', string='Account Group', compute='_compute_account_group', inverse='_inverse_account_group', store=True)
     ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account', related='purchase_id.ap_gl_account', store=True)
     export_sequence = fields.Char('Export #', readonly=True, copy=False)
+
+    @api.depends('purchase_line_id')
+    def _compute_account_group(self):
+        for record in self:
+            record.account_group = record.purchase_line_id.account_group_id.id
+
+    def _inverse_account_group(self):
+        pass

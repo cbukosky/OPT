@@ -42,7 +42,29 @@ class PurchaseApproval(models.Model):
     user_id = fields.Many2one('res.users', ondelete='set null', string='Approver')
     approved = fields.Boolean('Approved')
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
+
+    ready_approval = fields.Boolean('Ready to be approved by this approver', readonly=True, compute='_compute_can_approve')
     # date_approved = fields.Datetime(string='Date', readonly=True)
+
+    def _compute_can_approve(self):
+        # The current user is ready to approve if he or she is the first approver or his/her previous approver has approved
+
+        for approval in self:
+            # Get all user_ids that need to approve
+            level_ids = self.env['purchase.level'].search(
+                    [('name', '=', approval.order_id.charge_code_id.project_opt), ('approval_min', '<=', approval.order_id.amount_total)], order='approval_min asc')
+            user_ids = level_ids.mapped('user_id.id')
+
+            # Filter out the current PO approvals that are approved
+            approvals_unapproved = self.env['purchase.approval'].search([('approved', '=', False), ('user_id', 'in', user_ids), ('order_id', '=', approval.order_id.id)])
+
+            if not approvals_unapproved:
+                approval.ready_approval = False
+                continue
+
+            # Sort them according to user_ids
+            first_approval = approvals_unapproved.sorted(key=lambda a: user_ids.index(a.user_id.id))[0]
+            approval.ready_approval = True if approval == first_approval else False
 
     def write(self, vals):
         super(PurchaseApproval, self).write(vals)
@@ -58,6 +80,7 @@ class PurchaseApproval(models.Model):
 
                 # Notify next set of users requesting their approval
                 approval.order_id.notify_approvers()
+
 
     def _compute_can_edit_approval(self):
         # The current user can approve if he is the approver in the approvals table or
@@ -90,12 +113,26 @@ class PurchaseOrder(models.Model):
     show_action_confirm = fields.Boolean('Show Confirm Button', readonly=True, compute='_compute_show_action_confirm')
     ap_gl_account = fields.Many2one('apgl.account', string='AP GL Account')
     proxy_ids = fields.Many2many('purchase.proxy', string='Proxies', readonly=True, copy=False)
+    expense_class = fields.Many2one('expense.class')
+
+    # @api.onchange('approval_ids')
+    # def onchange_approved(self):
+    #     for approval in self.approval_ids:
+    #         if approval.approved and not approval.date_approved:
+    #             tz = timezone('US/Eastern')  # Eastern timezone requested by customer
+    #             approval.date_approved = fields.Datetime.now
+    #             # approval.order_id.message_post(body='%s approved purchase order %s on %s EST' % (
+    #             #                                 self.user_id.name,
+    #             #                                 self.order_id.name,
+    #             #                                 datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
+    
     po_balance = fields.Float(string='PO Balance', compute='_compute_po_balance')
     invoice_status = fields.Selection(selection_add=[
         ('closed', 'Closed'),
     ], string='Billing Status', compute='_get_invoiced', store=True, readonly=True, copy=False, default='no')
 
-    @api.depends('approval_ids','approval_ids.approved')
+
+    @api.depends('approval_ids', 'approval_ids.approved')
     def _compute_approved(self):
         for order in self:
             order.approved = order.approval_ids and all(order.approval_ids.mapped('approved')) or False
@@ -172,8 +209,9 @@ class PurchaseOrder(models.Model):
 
             # Send notification
             template = self.env.ref('opt_purchase.mail_template_po_approval')
-            if recipients:
-                template.send_mail(order.id, force_send=True,
+            for recipient in recipients:
+                email_values = {'recipient': recipient.name}
+                template.sudo().with_context(email_values).send_mail(order.id, force_send=True,
                                    email_values={'recipient_ids': [(4, p.id) for p in recipients]})
 
             # Notify respective proxies
@@ -181,12 +219,13 @@ class PurchaseOrder(models.Model):
                 proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', users.ids)])
                 proxy_template = self.env.ref('opt_purchase.mail_template_po_notification')
                 proxy_partners = [p.proxy_id.partner_id for p in proxy_ids]
-                if proxy_partners:
-                    proxy_template.send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
+                for proxy in proxy_partners:
+                    email_values = {'proxy': proxy.name}
+                    proxy_template.sudo().with_context(email_values).send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
 
 
     def action_compute_approval_ids(self):
-        for order in self.filtered(lambda o: o.state == 'draft'):  # recompute will only get called when the order is draft
+        for order in self.filtered(lambda o: o.state in ['draft', 'sent']):
             existing_user_ids = order.approval_ids.mapped('user_id')
             new_user_ids = order._get_approval_users()
             if new_user_ids != existing_user_ids:
@@ -203,8 +242,6 @@ class PurchaseOrder(models.Model):
                     })
                     order.approval_ids |= new_approval
 
-
-
             proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', order.approval_ids.mapped('user_id').ids)])  # it should exclude non-active records by default
             order.write({'proxy_ids': [(6, 0, proxy_ids.ids)]})
 
@@ -215,6 +252,7 @@ class PurchaseOrder(models.Model):
         self.ensure_one()
         action_id = self.env.ref("opt_purchase.action_purchase_approval_tree")
         action_data = action_id.read()[0]
+        print(action_data)
         action_data.update({
             'domain': [('order_id', '=', self.id)],
             'context': {'default_order_id': self.id},
