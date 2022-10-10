@@ -29,7 +29,7 @@
       	  <field name="approved"/>
       	</xpath>
         <xpath expr="//field[@name='order_line']/tree//field[@name='product_uom']" position="after">
-      	  <field name="account_group_id" attrs="{'required': [('id', '!=', False)]}"/>
+      	  <field name="account_group_id" attrs="{'required': [('display_type', '!=', False)]}"/>
       	</xpath>
         <xpath expr="//field[@name='date_order']" position="after">
       	  <field name="ap_gl_account"/>
