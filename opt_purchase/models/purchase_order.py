@@ -78,8 +78,9 @@ class PurchaseApproval(models.Model):
                                                 datetime.now(tz).strftime('%m/%d/%Y %H:%M'))
                                                 )
 
-                # Notify next set of users requesting their approval
-                approval.order_id.notify_approvers()
+        # Notify next set of users requesting their approval
+        if vals.get('approved'):
+            self[0].order_id.notify_approvers()
 
 
     def _compute_can_edit_approval(self):
@@ -182,46 +183,25 @@ class PurchaseOrder(models.Model):
 
     def notify_approvers(self):
         for order in self:
-            # From the partners that have not approved yet, select the ones with the lower hierarchy
-            # of approval levels. If there are multiple partners for a certain amount, return them all
-            approved = order.approval_ids.filtered(lambda a: a.approved).mapped('user_id')
-            level_ids = self.env['purchase.level'].search([('name', '=', order.charge_code_id.project_opt),
-                                                           ('approval_min', '<=', self.amount_total),
-                                                           ('user_id', 'not in', approved.ids)])
-            users_by_level = {}
-            for level in level_ids:
-                amount = level.approval_min
-                if users_by_level.get(amount):
-                    users_by_level[amount] += level.mapped('user_id')
-                else:
-                    users_by_level[amount] = level.mapped('user_id')
-            users = users_by_level[min(users_by_level.keys())] if users_by_level else []
+            
+            #get the next approver (Ready to be approved by this approver)
+            next_approvals = order.approval_ids.filtered(lambda a: a.ready_approval and not a.approved).mapped('user_id')
 
-            # Make sure that we have not already sent the notification. The approval re-computation can be
-            # done multiple times so we do not want to send the notification more than once
-            all_messages = self.env['mail.message'].search([('model', '=', 'purchase.order'),
-                                                            ('res_id', '=', order.id),
-                                                            ('subject', 'ilike', 'approval')])
-            recipients = self.env['res.partner']
-            for user in users:
-                if not all_messages.filtered(lambda m: user.mapped('partner_id') in m.partner_ids):
-                    recipients += user.mapped('partner_id')
-
-            # Send notification
+            # Send notification to the next approver
             template = self.env.ref('opt_purchase.mail_template_po_approval')
-            for recipient in recipients:
-                email_values = {'recipient': recipient.name}
+            if next_approvals:
+                email_values = {'recipient': next_approvals.name}
                 template.sudo().with_context(email_values).send_mail(order.id, force_send=True,
-                                   email_values={'recipient_ids': [(4, p.id) for p in recipients]})
-
-            # Notify respective proxies
-            if users:
-                proxy_ids = order.env['purchase.proxy'].search([('approver_id', 'in', users.ids)])
+                                   email_values={'recipient_ids': [(4, next_approvals.mapped('partner_id').id)]})
+        
+            # Notify respective proxies if any for the above approver
+            if next_approvals:
+                proxy_approver_ids = order.env['purchase.proxy'].search([('approver_id', '=', next_approvals.id)])
                 proxy_template = self.env.ref('opt_purchase.mail_template_po_notification')
-                proxy_partners = [p.proxy_id.partner_id for p in proxy_ids]
+                proxy_partners = proxy_approver_ids.mapped("proxy_id").mapped("partner_id")
                 for proxy in proxy_partners:
                     email_values = {'proxy': proxy.name}
-                    proxy_template.sudo().with_context(email_values).send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, p.id) for p in proxy_partners]})
+                    proxy_template.sudo().with_context(email_values).send_mail(order.id, force_send=True, email_values={'recipient_ids': [(4, proxy.id)]})
 
 
     def action_compute_approval_ids(self):
