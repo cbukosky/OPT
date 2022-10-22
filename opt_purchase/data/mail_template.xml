@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
+
     <record id="mail_template_po_approval" model="mail.template">
         <field name="name">Purchase Order Approval</field>
         <field name="model_id" ref="purchase.model_purchase_order"/>
@@ -52,7 +52,7 @@
                 <tr>
                     <td align="center" style="min-width: 590px;">
                         <table border="0" cellpadding="0" cellspacing="0" width="590" style="min-width: 590px; background-color: white; padding: 0px 8px 0px 8px; border-collapse:separate;">
-                          <tr><td valign="top" style="font-size: 13px;">
+                            <tr><td valign="top" style="font-size: 13px;">
                                 <div style="margin: 0px; padding: 0px;">
                                     Hi <t t-out="ctx.get('proxy', 'proxy')">Proxy</t>,
                                     <br></br>
@@ -64,7 +64,7 @@
                                         </a>
                                     </p>
                                 </div>
-                            </td></tr>
+                              </td></tr>
                         </table>
                     </td>
                 </tr>
@@ -76,5 +76,4 @@
         <field name="auto_delete" eval="True"/>
     </record>
 
-    </data>
 </odoo>
