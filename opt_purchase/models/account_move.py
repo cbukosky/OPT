@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# Part of Odoo. See LICENSE file for full copyright and licensing details.
-
 from odoo import api, fields, models, _
 import io, base64
 
@@ -53,12 +50,6 @@ class AccountMove(models.Model):
          " * The 'Paid' status is set automatically when the invoice is paid. Its related journal entries may or may not be reconciled.\n"
          " * The 'Cancelled' status is used when user cancel invoice.",
     ondelete=None)
-
-    # @api.model
-    # def _unlink_confirm_invoice_action(self):
-    #     action = self.env.ref('account.action_account_invoice_confirm', raise_if_not_found=False)
-    #     if action:
-    #         action.unlink()
 
     def generate_export_data(self, export_sequence):
         header = ['Quickbook Name:',
