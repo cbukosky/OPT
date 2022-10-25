@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
-
     <record id="mail_template_po_approval" model="mail.template">
         <field name="name">Purchase Order Approval</field>
         <field name="model_id" ref="purchase.model_purchase_order"/>
