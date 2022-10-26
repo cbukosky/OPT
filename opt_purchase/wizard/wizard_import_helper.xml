@@ -35,9 +35,9 @@
         <field name="arch" type="xml">
             <form string="Set Purchase Levels" create="true">
                 <sheet>
-                      <span style="font-size:20px;font-weight:bold;">Project ID: <field name="project_id" readonly='1'/></span>
+                    <span style="font-size:20px;font-weight:bold;">Project ID: <field name="project_id" readonly='1'/></span>
 
-                      <group col='2'>
+                    <group col='2'>
 
                         <group col='1' string="User">
                             <field name="currency_id" invisible="1"/>
@@ -56,7 +56,7 @@
                             <field name="amount4" nolabel='1'/>
                             <field name="amount5" nolabel='1'/>
                         </group>
-                      </group>
+                    </group>
                 </sheet>
                 <footer>
                     <button string="OK" type="object" name="action_set_purchase_levels" class="oe_highlight"/>

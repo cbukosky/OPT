@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 {
     "name": "OPT: Purchase-related customizations",
     "summary": """OPT: Purchase-related customizations""",
@@ -25,7 +24,6 @@
         "views/purchase_charge_code_views.xml",
         "views/account_move_views.xml",
         "wizard/wizard_import_helper.xml",
-        # "wizard/wizard_purchase_levels.xml",
         "wizard/account_move_state_views.xml",
     ]
 }

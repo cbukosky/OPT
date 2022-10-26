@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# Part of Odoo. See LICENSE file for full copyright and licensing details.
-
 from datetime import datetime
 from pytz import timezone
 
@@ -52,7 +49,6 @@ class PurchaseApproval(models.Model):
     can_edit_approval = fields.Boolean('Approval can be edited by current user', readonly=True, compute='_compute_can_edit_approval')
 
     ready_approval = fields.Boolean('Ready to be approved by this approver', readonly=True, compute='_compute_can_approve')
-    # date_approved = fields.Datetime(string='Date', readonly=True)
 
     def _compute_can_approve(self):
         # Current user is ready to approve if he or she is the first approver or his/her previous approver has approved
@@ -86,8 +82,9 @@ class PurchaseApproval(models.Model):
                                                 datetime.now(tz).strftime('%m/%d/%Y %H:%M')
                 ))
 
-                # Notify next set of users requesting their approval
-                approval.order_id.notify_approvers()
+        # Notify next set of users requesting their approval
+        if vals.get('approved'):
+            self[0].order_id.notify_approvers()
 
     def _compute_can_edit_approval(self):
         # The current user can approve if he is the approver in the approvals table or
