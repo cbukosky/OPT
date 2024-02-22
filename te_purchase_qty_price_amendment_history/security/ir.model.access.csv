@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_te_purchase_order_line_history,access_te_purchase_order_line_history,model_te_purchase_order_line_history,purchase.group_purchase_manager,1,1,1,1
+access_te_purchase_order_line_history_user,access_te_purchase_order_line_history_user,model_te_purchase_order_line_history,purchase.group_purchase_user,1,1,0,0
