@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+sh_bom_structure_excel.access_sh_bom_structure_xls,access_sh_bom_structure_xls,sh_bom_structure_excel.model_sh_bom_structure_xls,base.group_user,1,1,1,1

@@ -1,0 +1,11 @@
+<odoo>
+       <record id="model_bom_structure_report_excel" model="ir.actions.server">
+        <field name="name">BOM Structure Report in Excel</field>
+        <field name="type">ir.actions.server</field>
+        <field name="model_id" ref="mrp.model_mrp_bom" />
+        <field name="binding_model_id" ref="mrp.model_mrp_bom"/>       
+        <field name="state">code</field>         
+        <field name="code">  
+            action = records._bom_structure_excel()</field>
+    </record>
+</odoo>
